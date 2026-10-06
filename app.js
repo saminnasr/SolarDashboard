@@ -2107,7 +2107,7 @@ async function pdf() {
     tableCard.style.maxWidth = '100%';
 
     const opt = {
-      margin: [8, 6, 8, 6],                    // حاشیه کمتر برای جا دادن عرض بیشتر
+      margin: [2,2, 2, 2],                    // حاشیه کمتر برای جا دادن عرض بیشتر
       filename: `گزارش_مناقصات_${currentDate.replace(/\//g, '-')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
@@ -2117,7 +2117,7 @@ async function pdf() {
         scrollY: 0,
         scrollX: 0,
         // مهم: عرض رو محدود می‌کنیم تا از صفحه بیرون نزنه
-        windowWidth: 1400,                     // مقدار تقریبی مناسب برای A3 افقی
+        windowWidth: 595,                     // مقدار تقریبی مناسب برای A3 افقی
         windowHeight: tableCard.scrollHeight + 50,
         onclone: (clonedDoc) => {
           const clonedCard = clonedDoc.querySelector('.table-card');
@@ -2125,7 +2125,7 @@ async function pdf() {
 
           // کل کارت رو محدود کن
           clonedCard.style.width = '100%';
-          clonedCard.style.maxWidth = '1400px';
+          clonedCard.style.maxWidth = '595 px';
           clonedCard.style.overflow = 'hidden';
           clonedCard.style.boxSizing = 'border-box';
 
