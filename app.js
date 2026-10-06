@@ -2048,27 +2048,21 @@ window.deleteTender =
 async function pdf() {
   const tableCard = document.querySelector('.table-card');
   const tableScroll = document.querySelector('.table-scroll');
-
   if (!tableCard || !tableScroll) {
     toast('جدول یافت نشد.');
     return;
   }
-
   toast('در حال تولید PDF...');
 
   const now = new Date();
   const currentDate = new Intl.DateTimeFormat('fa-IR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
+    year: 'numeric', month: '2-digit', day: '2-digit'
   }).format(now);
-
   const currentTime = new Intl.DateTimeFormat('fa-IR', {
-    hour: '2-digit',
-    minute: '2-digit'
+    hour: '2-digit', minute: '2-digit'
   }).format(now);
 
-  // هدر موقت برای PDF
+  // هدر موقت
   const headerDiv = document.createElement('div');
   headerDiv.id = 'pdfHeaderTemp';
   headerDiv.style.cssText = `
@@ -2076,10 +2070,12 @@ async function pdf() {
     justify-content:space-between;
     align-items:center;
     padding:10px 5px;
-    margin-bottom:15px;
+    margin-bottom:10px;
     border-bottom:2px solid #000;
     font-family:inherit;
     direction:rtl;
+    page-break-after: avoid;   /* مهم */
+    break-after: avoid;
   `;
   headerDiv.innerHTML = `
     <div>
@@ -2093,7 +2089,7 @@ async function pdf() {
   `;
   tableCard.insertBefore(headerDiv, tableCard.firstChild);
 
-  // مخفی کردن ستون‌های مخصوص ادمین
+  // مخفی کردن ستون‌های ادمین
   const adminElements = document.querySelectorAll('.admin-col, .admin, #adminActions');
   adminElements.forEach(el => el.style.display = 'none');
 
@@ -2107,8 +2103,12 @@ async function pdf() {
     tableCard.style.maxHeight = 'none';
     tableCard.style.overflow = 'visible';
 
+    // جلوگیری از page-break بین هدر و جدول
+    tableCard.style.pageBreakInside = 'avoid';
+    tableCard.style.breakInside = 'avoid';
+
     const opt = {
-      margin: [10, 10, 10, 10],
+      margin: [8, 8, 8, 8],          // کمی کمتر از قبل
       filename: `گزارش_مناقصات_${currentDate.replace(/\//g, '-')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
@@ -2116,24 +2116,29 @@ async function pdf() {
         useCORS: true,
         logging: false,
         scrollY: 0,
-        windowHeight: tableCard.scrollHeight + 200
+        scrollX: 0,
+        windowWidth: tableCard.scrollWidth,
+        windowHeight: tableCard.scrollHeight
       },
       jsPDF: {
         unit: 'mm',
         format: 'a3',
         orientation: 'landscape'
       },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      pagebreak: { 
+        mode: ['css', 'legacy'],     // 'avoid-all' رو حذف کردیم
+        before: '.page-break-before',
+        after: '.page-break-after',
+        avoid: ['tr', 'td', 'th', '#pdfHeaderTemp']
+      }
     };
 
     await html2pdf().set(opt).from(tableCard).save();
-
     toast('فایل PDF با موفقیت دانلود شد.');
   } catch (error) {
     console.error('PDF ERROR:', error);
     toast('خطا در صدور PDF');
   } finally {
-    // برگرداندن همه چیز به حالت اول
     document.getElementById('pdfHeaderTemp')?.remove();
     adminElements.forEach(el => el.style.display = '');
     tableScroll.style.cssText = originalScrollStyle;
