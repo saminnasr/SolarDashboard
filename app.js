@@ -2045,153 +2045,294 @@ window.deleteTender =
 // PDF
 // =====================================================
 
+
 async function pdf() {
-  const tableCard = document.querySelector('.table-card');
-  const tableScroll = document.querySelector('.table-scroll');
-  if (!tableCard || !tableScroll) {
-    toast('جدول یافت نشد.');
+
+  const tableCard =
+    document.querySelector(
+      '.table-card'
+    );
+
+
+  const tableScroll =
+    document.querySelector(
+      '.table-scroll'
+    );
+
+
+  if (
+    !tableCard ||
+    !tableScroll
+  ) {
+
+    toast(
+      'جدول یافت نشد.'
+    );
+
     return;
+
   }
-  toast('در حال تولید PDF...');
 
-  const now = new Date();
-  const currentDate = new Intl.DateTimeFormat('fa-IR', {
-    year: 'numeric', month: '2-digit', day: '2-digit'
-  }).format(now);
-  const currentTime = new Intl.DateTimeFormat('fa-IR', {
-    hour: '2-digit', minute: '2-digit'
-  }).format(now);
 
-  // هدر موقت
-  const headerDiv = document.createElement('div');
-  headerDiv.id = 'pdfHeaderTemp';
+  toast(
+    'در حال تولید PDF...'
+  );
+
+
+  const now =
+    new Date();
+
+
+  const currentDate =
+    new Intl.DateTimeFormat(
+      'fa-IR',
+      {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }
+    ).format(
+      now
+    );
+
+
+  const currentTime =
+    new Intl.DateTimeFormat(
+      'fa-IR',
+      {
+        hour: '2-digit',
+        minute: '2-digit'
+      }
+    ).format(
+      now
+    );
+
+
+  const headerDiv =
+    document.createElement(
+      'div'
+    );
+
+
+  headerDiv.id =
+    'pdfHeaderTemp';
+
+
   headerDiv.style.cssText = `
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 8px;
-    margin-bottom: 8px;
-    border-bottom: 2px solid #000;
-    font-family: inherit;
-    direction: rtl;
-    width: 100%;
-    box-sizing: border-box;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 5px;
+    margin-bottom:15px;
+    border-bottom:2px solid #000;
+    font-family:inherit;
+    direction:rtl;
   `;
+
+
   headerDiv.innerHTML = `
     <div>
-      <h2 style="margin:0; font-size:15px;">گزارش مناقصات در دست اقدام واحد تجدیدپذیر</h2>
-      <span style="font-size:11px; color:#555;">فهرست پیگیری مناقصات نیروگاهی</span>
+
+      <h2
+        style="
+          margin:0;
+          font-size:18px;
+        "
+      >
+        گزارش مناقصات در دست اقدام
+        واحد تجدیدپذیر
+      </h2>
+
+      <span
+        style="
+          font-size:12px;
+          color:#555;
+        "
+      >
+        فهرست پیگیری مناقصات نیروگاهی
+      </span>
+
     </div>
-    <div style="text-align:left; font-size:11px; white-space:nowrap;">
-      <div><b>تاریخ گزارش:</b> ${currentDate}</div>
-      <div><b>ساعت صدور:</b> ${currentTime}</div>
+
+    <div
+      style="
+        text-align:right;
+        font-size:12px;
+      "
+    >
+
+      <div>
+        <b>تاریخ گزارش:</b>
+        ${currentDate}
+      </div>
+
+      <div>
+        <b>ساعت صدور:</b>
+        ${currentTime}
+      </div>
+
     </div>
   `;
-  tableCard.insertBefore(headerDiv, tableCard.firstChild);
 
-  // مخفی کردن ستون‌های ادمین
-  const adminElements = document.querySelectorAll('.admin-col, .admin, #adminActions');
-  adminElements.forEach(el => el.style.display = 'none');
 
-  const originalScrollStyle = tableScroll.style.cssText;
-  const originalCardStyle = tableCard.style.cssText;
+  tableCard.insertBefore(
+    headerDiv,
+    tableCard.firstChild
+  );
+
+
+  const originalScrollStyle =
+    tableScroll.style.cssText;
+
+
+  const originalCardStyle =
+    tableCard.style.cssText;
+
 
   try {
-    // باز کردن کامل
-    tableScroll.style.maxHeight = 'none';
-    tableScroll.style.overflow = 'visible';
-    tableCard.style.maxHeight = 'none';
-    tableCard.style.overflow = 'visible';
+
+    tableScroll.style.maxHeight =
+      'none';
+
+
+    tableScroll.style.overflow =
+      'visible';
+
+
+    tableCard.style.maxHeight =
+      'none';
+
+
+    tableCard.style.overflow =
+      'visible';
+
 
     const opt = {
-      // حاشیه مساوی چپ و راست → جدول وسط می‌شینه
-      // عدد بالاتر = فاصله بیشتر از لبه‌ها
-      margin: [10, 14, 10, 14],   // top, left, bottom, right (میلی‌متر)
 
-      filename: `گزارش_مناقصات_${currentDate.replace(/\//g, '-')}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
+      margin: [
+        10,
+        10,
+        10,
+        10
+      ],
+
+
+      filename:
+        `گزارش_مناقصات_${currentDate
+          .replace(
+            /\//g,
+            '-'
+          )}.pdf`,
+
+
+      image: {
+
+        type: 'jpeg',
+
+        quality: 0.98
+
+      },
+
+
       html2canvas: {
+
         scale: 1.5,
+
         useCORS: true,
+
         logging: false,
-        scrollX: 0,
-        scrollY: 0,
-        x: 0,
-        y: 0,
-        windowWidth: 1350,          // عرض مناسب برای A3 افقی با حاشیه ۱۴mm
-        windowHeight: tableCard.scrollHeight + 40,
-        onclone: (clonedDoc) => {
-          const clonedCard = clonedDoc.querySelector('.table-card');
-          if (!clonedCard) return;
 
-          // کارت رو محدود و وسط‌چین کن
-          clonedCard.style.width = '100%';
-          clonedCard.style.maxWidth = '1350px';
-          clonedCard.style.margin = '0 auto';
-          clonedCard.style.boxSizing = 'border-box';
-          clonedCard.style.overflow = 'hidden';
-          clonedCard.style.padding = '0 4px';
+        scrollY: 1,
 
-          // جدول
-          const table = clonedCard.querySelector('table');
-          if (table) {
-            table.style.width = '100%';
-            table.style.maxWidth = '100%';
-            table.style.tableLayout = 'fixed';   // کنترل دقیق عرض ستون‌ها
-            table.style.borderCollapse = 'collapse';
-            table.style.margin = '0 auto';
-          }
+        windowHeight:
+          tableCard.scrollHeight +
+          200
 
-          // همه سلول‌ها
-          clonedCard.querySelectorAll('th, td').forEach(cell => {
-            cell.style.whiteSpace = 'normal';
-            cell.style.wordBreak = 'break-word';
-            cell.style.overflowWrap = 'break-word';
-            cell.style.overflow = 'hidden';
-            cell.style.padding = '3px 5px';
-            cell.style.fontSize = '10px';
-            cell.style.lineHeight = '1.3';
-            cell.style.verticalAlign = 'top';
-            cell.style.boxSizing = 'border-box';
-          });
-
-          // ستون اول (راست‌ترین ستون در RTL) - این معمولاً بریده می‌شد
-          clonedCard.querySelectorAll('tr > *:first-child').forEach(cell => {
-            cell.style.width = '85px';
-            cell.style.minWidth = '75px';
-            cell.style.maxWidth = '95px';
-            cell.style.fontSize = '9.5px';
-          });
-
-          // ستون‌های پهن (ملاحظات و ...) رو محدود کن
-          clonedCard.querySelectorAll('tr > *:nth-child(4), tr > *:nth-child(5)').forEach(cell => {
-            cell.style.maxWidth = '130px';
-          });
-        }
       },
+
+
       jsPDF: {
+
         unit: 'mm',
+
         format: 'a3',
+
         orientation: 'landscape'
+
       },
+
+
       pagebreak: {
-        mode: ['css', 'legacy'],
-        avoid: ['tr', 'td', 'th', '#pdfHeaderTemp']
+
+        mode: [
+
+          'avoid-all',
+
+          'css',
+
+          'legacy'
+
+        ]
+
       }
+
     };
 
-    await html2pdf().set(opt).from(tableCard).save();
-    toast('فایل PDF با موفقیت دانلود شد.');
-  } catch (error) {
-    console.error('PDF ERROR:', error);
-    toast('خطا در صدور PDF');
-  } finally {
-    document.getElementById('pdfHeaderTemp')?.remove();
-    adminElements.forEach(el => el.style.display = '');
-    tableScroll.style.cssText = originalScrollStyle;
-    tableCard.style.cssText = originalCardStyle;
+
+    await html2pdf()
+      .set(
+        opt
+      )
+      .from(
+        tableCard
+      )
+      .save();
+
+
+    toast(
+      'فایل PDF با موفقیت دانلود شد.'
+    );
+
+
   }
+
+  catch (
+    error
+  ) {
+
+    console.error(
+      'PDF ERROR:',
+      error
+    );
+
+
+    toast(
+      'خطا در صدور PDF'
+    );
+
+  }
+
+
+  finally {
+
+    document
+      .getElementById(
+        'pdfHeaderTemp'
+      )
+      ?.remove();
+
+
+    tableScroll.style.cssText =
+      originalScrollStyle;
+
+
+    tableCard.style.cssText =
+      originalCardStyle;
+
+  }
+
 }
+
 
 // =====================================================
 // GLOBAL FUNCTIONS
