@@ -2066,25 +2066,23 @@ async function pdf() {
   const headerDiv = document.createElement('div');
   headerDiv.id = 'pdfHeaderTemp';
   headerDiv.style.cssText = `
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:6px 4px;
-    margin-bottom:6px;
-    border-bottom:2px solid #000;
-    font-family:inherit;
-    direction:rtl;
-    page-break-after: avoid;
-    break-after: avoid;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    margin-bottom: 8px;
+    border-bottom: 2px solid #000;
+    font-family: inherit;
+    direction: rtl;
     width: 100%;
     box-sizing: border-box;
   `;
   headerDiv.innerHTML = `
-    <div style="flex:1;">
-      <h2 style="margin:0; font-size:15px; white-space:nowrap;">گزارش مناقصات در دست اقدام واحد تجدیدپذیر</h2>
+    <div>
+      <h2 style="margin:0; font-size:15px;">گزارش مناقصات در دست اقدام واحد تجدیدپذیر</h2>
       <span style="font-size:11px; color:#555;">فهرست پیگیری مناقصات نیروگاهی</span>
     </div>
-    <div style="text-align:left; font-size:11px; white-space:nowrap; margin-right:10px;">
+    <div style="text-align:left; font-size:11px; white-space:nowrap;">
       <div><b>تاریخ گزارش:</b> ${currentDate}</div>
       <div><b>ساعت صدور:</b> ${currentTime}</div>
     </div>
@@ -2099,73 +2097,75 @@ async function pdf() {
   const originalCardStyle = tableCard.style.cssText;
 
   try {
+    // باز کردن کامل
     tableScroll.style.maxHeight = 'none';
     tableScroll.style.overflow = 'visible';
     tableCard.style.maxHeight = 'none';
     tableCard.style.overflow = 'visible';
-    tableCard.style.width = '100%';
-    tableCard.style.maxWidth = '100%';
 
     const opt = {
-      margin: [2,2, 2, 2],                    // حاشیه کمتر برای جا دادن عرض بیشتر
+      // حاشیه مساوی چپ و راست → جدول وسط می‌شینه
+      // عدد بالاتر = فاصله بیشتر از لبه‌ها
+      margin: [10, 14, 10, 14],   // top, left, bottom, right (میلی‌متر)
+
       filename: `گزارش_مناقصات_${currentDate.replace(/\//g, '-')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
         scale: 1.5,
         useCORS: true,
         logging: false,
-        scrollY: 0,
         scrollX: 0,
-        // مهم: عرض رو محدود می‌کنیم تا از صفحه بیرون نزنه
-        windowWidth: 1200,                     // مقدار تقریبی مناسب برای A3 افقی
-        windowHeight: tableCard.scrollHeight + 50,
+        scrollY: 0,
+        x: 0,
+        y: 0,
+        windowWidth: 1350,          // عرض مناسب برای A3 افقی با حاشیه ۱۴mm
+        windowHeight: tableCard.scrollHeight + 40,
         onclone: (clonedDoc) => {
           const clonedCard = clonedDoc.querySelector('.table-card');
           if (!clonedCard) return;
 
-          // کل کارت رو محدود کن
+          // کارت رو محدود و وسط‌چین کن
           clonedCard.style.width = '100%';
-          clonedCard.style.maxWidth = '1400 px';
-          clonedCard.style.overflow = 'hidden';
+          clonedCard.style.maxWidth = '1350px';
+          clonedCard.style.margin = '0 auto';
           clonedCard.style.boxSizing = 'border-box';
+          clonedCard.style.overflow = 'hidden';
+          clonedCard.style.padding = '0 4px';
 
           // جدول
-          const tables = clonedCard.querySelectorAll('table');
-          tables.forEach(table => {
+          const table = clonedCard.querySelector('table');
+          if (table) {
             table.style.width = '100%';
             table.style.maxWidth = '100%';
-            table.style.tableLayout = 'fixed';   // مهم برای کنترل عرض ستون‌ها
+            table.style.tableLayout = 'fixed';   // کنترل دقیق عرض ستون‌ها
             table.style.borderCollapse = 'collapse';
-          });
+            table.style.margin = '0 auto';
+          }
 
           // همه سلول‌ها
-          const cells = clonedCard.querySelectorAll('th, td');
-          cells.forEach(cell => {
+          clonedCard.querySelectorAll('th, td').forEach(cell => {
             cell.style.whiteSpace = 'normal';
-            cell.style.wordWrap = 'break-word';
-            cell.style.overflowWrap = 'anywhere';
+            cell.style.wordBreak = 'break-word';
+            cell.style.overflowWrap = 'break-word';
             cell.style.overflow = 'hidden';
-            cell.style.textOverflow = 'ellipsis';
-            cell.style.padding = '3px 4px';
+            cell.style.padding = '3px 5px';
             cell.style.fontSize = '10px';
-            cell.style.lineHeight = '1.25';
+            cell.style.lineHeight = '1.3';
             cell.style.verticalAlign = 'top';
             cell.style.boxSizing = 'border-box';
           });
 
-          // ستون اول (سمت راست در RTL) - این ستون معمولاً بریده می‌شه
-          const firstColCells = clonedCard.querySelectorAll('tr > *:first-child');
-          firstColCells.forEach(cell => {
-            cell.style.width = '90px';
-            cell.style.minWidth = '80px';
-            cell.style.maxWidth = '100px';
+          // ستون اول (راست‌ترین ستون در RTL) - این معمولاً بریده می‌شد
+          clonedCard.querySelectorAll('tr > *:first-child').forEach(cell => {
+            cell.style.width = '85px';
+            cell.style.minWidth = '75px';
+            cell.style.maxWidth = '95px';
             cell.style.fontSize = '9.5px';
           });
 
-          // ستون‌های پهن‌تر (مثل ملاحظات) رو کمی جمع کن
-          const noteCells = clonedCard.querySelectorAll('tr > *:nth-child(4), tr > *:nth-child(5)');
-          noteCells.forEach(cell => {
-            cell.style.maxWidth = '140px';
+          // ستون‌های پهن (ملاحظات و ...) رو محدود کن
+          clonedCard.querySelectorAll('tr > *:nth-child(4), tr > *:nth-child(5)').forEach(cell => {
+            cell.style.maxWidth = '130px';
           });
         }
       },
@@ -2192,6 +2192,8 @@ async function pdf() {
     tableCard.style.cssText = originalCardStyle;
   }
 }
+
+
 // =====================================================
 // GLOBAL FUNCTIONS
 // =====================================================
