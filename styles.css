@@ -71,6 +71,7 @@ button {
   display: grid;
   place-items: center;
   font-weight: 800;
+  text-align: center;
 }
 
 .login h1 {
@@ -80,6 +81,17 @@ button {
 .login p {
   color: var(--muted);
 }
+
+
+
+.logo img {
+  max-width: 150px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+
 
 .login label,
 .form label {
