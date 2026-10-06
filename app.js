@@ -2286,6 +2286,20 @@ async function pdf() {
         tableCard
       )
       .save();
+    const element = document.querySelector('.table-card'); // یا هر بخشی که می‌خوای
+
+html2pdf().set({
+  margin: 10,
+  filename: 'گزارش-مناقصات.pdf',
+  image: { type: 'jpeg', quality: 0.98 },
+  html2canvas: { 
+    scale: 2,
+    useCORS: true,
+    logging: false,
+    scrollY: 0
+  },
+  jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } // افقی بهتره برای جدول
+}).from(element).save();
 
 
     toast(
