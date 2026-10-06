@@ -2117,7 +2117,7 @@ async function pdf() {
         scrollY: 0,
         scrollX: 0,
         // مهم: عرض رو محدود می‌کنیم تا از صفحه بیرون نزنه
-        windowWidth: 1400,                     // مقدار تقریبی مناسب برای A3 افقی
+        windowWidth: 1200,                     // مقدار تقریبی مناسب برای A3 افقی
         windowHeight: tableCard.scrollHeight + 50,
         onclone: (clonedDoc) => {
           const clonedCard = clonedDoc.querySelector('.table-card');
