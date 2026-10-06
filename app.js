@@ -2046,77 +2046,31 @@ window.deleteTender =
 // =====================================================
 
 async function pdf() {
+  const tableCard = document.querySelector('.table-card');
+  const tableScroll = document.querySelector('.table-scroll');
 
-  const tableCard =
-    document.querySelector(
-      '.table-card'
-    );
-
-
-  const tableScroll =
-    document.querySelector(
-      '.table-scroll'
-    );
-
-
-  if (
-    !tableCard ||
-    !tableScroll
-  ) {
-
-    toast(
-      'جدول یافت نشد.'
-    );
-
+  if (!tableCard || !tableScroll) {
+    toast('جدول یافت نشد.');
     return;
-
   }
 
+  toast('در حال تولید PDF...');
 
-  toast(
-    'در حال تولید PDF...'
-  );
+  const now = new Date();
+  const currentDate = new Intl.DateTimeFormat('fa-IR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(now);
 
+  const currentTime = new Intl.DateTimeFormat('fa-IR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(now);
 
-  const now =
-    new Date();
-
-
-  const currentDate =
-    new Intl.DateTimeFormat(
-      'fa-IR',
-      {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }
-    ).format(
-      now
-    );
-
-
-  const currentTime =
-    new Intl.DateTimeFormat(
-      'fa-IR',
-      {
-        hour: '2-digit',
-        minute: '2-digit'
-      }
-    ).format(
-      now
-    );
-
-
-  const headerDiv =
-    document.createElement(
-      'div'
-    );
-
-
-  headerDiv.id =
-    'pdfHeaderTemp';
-
-
+  // هدر موقت برای PDF
+  const headerDiv = document.createElement('div');
+  headerDiv.id = 'pdfHeaderTemp';
   headerDiv.style.cssText = `
     display:flex;
     justify-content:space-between;
@@ -2127,223 +2081,64 @@ async function pdf() {
     font-family:inherit;
     direction:rtl;
   `;
-
-
   headerDiv.innerHTML = `
     <div>
-
-      <h2
-        style="
-          margin:0;
-          font-size:18px;
-        "
-      >
-        گزارش مناقصات در دست اقدام
-        واحد تجدیدپذیر
-      </h2>
-
-      <span
-        style="
-          font-size:12px;
-          color:#555;
-        "
-      >
-        فهرست پیگیری مناقصات نیروگاهی
-      </span>
-
+      <h2 style="margin:0; font-size:18px;">گزارش مناقصات در دست اقدام واحد تجدیدپذیر</h2>
+      <span style="font-size:12px; color:#555;">فهرست پیگیری مناقصات نیروگاهی</span>
     </div>
-
-    <div
-      style="
-        text-align:left;
-        font-size:13px;
-      "
-    >
-
-      <div>
-        <b>تاریخ گزارش:</b>
-        ${currentDate}
-      </div>
-
-      <div>
-        <b>ساعت صدور:</b>
-        ${currentTime}
-      </div>
-
+    <div style="text-align:left; font-size:13px;">
+      <div><b>تاریخ گزارش:</b> ${currentDate}</div>
+      <div><b>ساعت صدور:</b> ${currentTime}</div>
     </div>
   `;
+  tableCard.insertBefore(headerDiv, tableCard.firstChild);
 
+  // مخفی کردن ستون‌های مخصوص ادمین
+  const adminElements = document.querySelectorAll('.admin-col, .admin, #adminActions');
+  adminElements.forEach(el => el.style.display = 'none');
 
-  tableCard.insertBefore(
-    headerDiv,
-    tableCard.firstChild
-  );
-
-
-  const originalScrollStyle =
-    tableScroll.style.cssText;
-
-
-  const originalCardStyle =
-    tableCard.style.cssText;
-
+  const originalScrollStyle = tableScroll.style.cssText;
+  const originalCardStyle = tableCard.style.cssText;
 
   try {
-
-    tableScroll.style.maxHeight =
-      'none';
-
-
-    tableScroll.style.overflow =
-      'visible';
-
-
-    tableCard.style.maxHeight =
-      'none';
-
-
-    tableCard.style.overflow =
-      'visible';
-
+    // باز کردن کامل جدول
+    tableScroll.style.maxHeight = 'none';
+    tableScroll.style.overflow = 'visible';
+    tableCard.style.maxHeight = 'none';
+    tableCard.style.overflow = 'visible';
 
     const opt = {
-
-      margin: [
-        10,
-        10,
-        10,
-        10
-      ],
-
-
-      filename:
-        `گزارش_مناقصات_${currentDate
-          .replace(
-            /\//g,
-            '-'
-          )}.pdf`,
-
-
-      image: {
-
-        type: 'jpeg',
-
-        quality: 0.98
-
-      },
-
-
+      margin: [10, 10, 10, 10],
+      filename: `گزارش_مناقصات_${currentDate.replace(/\//g, '-')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
-
         scale: 1.5,
-
         useCORS: true,
-
         logging: false,
-
         scrollY: 0,
-
-        windowHeight:
-          tableCard.scrollHeight +
-          200
-
+        windowHeight: tableCard.scrollHeight + 200
       },
-
-
       jsPDF: {
-
         unit: 'mm',
-
         format: 'a3',
-
         orientation: 'landscape'
-
       },
-
-
-      pagebreak: {
-
-        mode: [
-
-          'avoid-all',
-
-          'css',
-
-          'legacy'
-
-        ]
-
-      }
-
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
+    await html2pdf().set(opt).from(tableCard).save();
 
-    await html2pdf()
-      .set(
-        opt
-      )
-      .from(
-        tableCard
-      )
-      .save();
-    const element = document.querySelector('.table-card'); // یا هر بخشی که می‌خوای
-
-html2pdf().set({
-  margin: 10,
-  filename: 'گزارش-مناقصات.pdf',
-  image: { type: 'jpeg', quality: 0.98 },
-  html2canvas: { 
-    scale: 2,
-    useCORS: true,
-    logging: false,
-    scrollY: 0
-  },
-  jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } // افقی بهتره برای جدول
-}).from(element).save();
-
-
-    toast(
-      'فایل PDF با موفقیت دانلود شد.'
-    );
-
-
+    toast('فایل PDF با موفقیت دانلود شد.');
+  } catch (error) {
+    console.error('PDF ERROR:', error);
+    toast('خطا در صدور PDF');
+  } finally {
+    // برگرداندن همه چیز به حالت اول
+    document.getElementById('pdfHeaderTemp')?.remove();
+    adminElements.forEach(el => el.style.display = '');
+    tableScroll.style.cssText = originalScrollStyle;
+    tableCard.style.cssText = originalCardStyle;
   }
-
-  catch (
-    error
-  ) {
-
-    console.error(
-      'PDF ERROR:',
-      error
-    );
-
-
-    toast(
-      'خطا در صدور PDF'
-    );
-
-  }
-
-
-  finally {
-
-    document
-      .getElementById(
-        'pdfHeaderTemp'
-      )
-      ?.remove();
-
-
-    tableScroll.style.cssText =
-      originalScrollStyle;
-
-
-    tableCard.style.cssText =
-      originalCardStyle;
-
-  }
-
 }
 
 
