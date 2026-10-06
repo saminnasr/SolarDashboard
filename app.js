@@ -2069,20 +2069,20 @@ async function pdf() {
     display:flex;
     justify-content:space-between;
     align-items:center;
-    padding:10px 5px;
-    margin-bottom:10px;
+    padding:8px 5px;
+    margin-bottom:8px;
     border-bottom:2px solid #000;
     font-family:inherit;
     direction:rtl;
-    page-break-after: avoid;   /* مهم */
+    page-break-after: avoid;
     break-after: avoid;
   `;
   headerDiv.innerHTML = `
     <div>
-      <h2 style="margin:0; font-size:18px;">گزارش مناقصات در دست اقدام واحد تجدیدپذیر</h2>
-      <span style="font-size:12px; color:#555;">فهرست پیگیری مناقصات نیروگاهی</span>
+      <h2 style="margin:0; font-size:16px;">گزارش مناقصات در دست اقدام واحد تجدیدپذیر</h2>
+      <span style="font-size:11px; color:#555;">فهرست پیگیری مناقصات نیروگاهی</span>
     </div>
-    <div style="text-align:left; font-size:13px;">
+    <div style="text-align:left; font-size:12px;">
       <div><b>تاریخ گزارش:</b> ${currentDate}</div>
       <div><b>ساعت صدور:</b> ${currentTime}</div>
     </div>
@@ -2097,38 +2097,67 @@ async function pdf() {
   const originalCardStyle = tableCard.style.cssText;
 
   try {
-    // باز کردن کامل جدول
     tableScroll.style.maxHeight = 'none';
     tableScroll.style.overflow = 'visible';
     tableCard.style.maxHeight = 'none';
     tableCard.style.overflow = 'visible';
 
-    // جلوگیری از page-break بین هدر و جدول
-    tableCard.style.pageBreakInside = 'avoid';
-    tableCard.style.breakInside = 'avoid';
-
     const opt = {
-      margin: [8, 8, 8, 8],          // کمی کمتر از قبل
+      margin: [10, 8, 10, 8],          // حاشیه کمی بیشتر
       filename: `گزارش_مناقصات_${currentDate.replace(/\//g, '-')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
-        scale: 1.5,
+        scale: 1.6,
         useCORS: true,
         logging: false,
         scrollY: 0,
         scrollX: 0,
         windowWidth: tableCard.scrollWidth,
-        windowHeight: tableCard.scrollHeight
+        windowHeight: tableCard.scrollHeight,
+        // مهم‌ترین قسمت: قبل از رندر، استایل‌ها رو اصلاح می‌کنیم
+        onclone: (clonedDoc) => {
+          const clonedCard = clonedDoc.querySelector('.table-card');
+          if (!clonedCard) return;
+
+          // جدول رو مجبور می‌کنیم تمام عرض رو بگیره و متن‌ها رو بپیچونه
+          const tables = clonedCard.querySelectorAll('table');
+          tables.forEach(table => {
+            table.style.width = '100%';
+            table.style.tableLayout = 'auto';          // یا 'fixed' اگر ستون‌ها ثابت می‌خوای
+            table.style.borderCollapse = 'collapse';
+          });
+
+          // تمام سلول‌ها
+          const cells = clonedCard.querySelectorAll('th, td');
+          cells.forEach(cell => {
+            cell.style.whiteSpace = 'normal';
+            cell.style.wordWrap = 'break-word';
+            cell.style.overflowWrap = 'break-word';
+            cell.style.overflow = 'visible';
+            cell.style.textOverflow = 'clip';
+            cell.style.padding = '4px 6px';
+            cell.style.fontSize = '11px';     // کمی کوچک‌تر برای جا شدن
+            cell.style.lineHeight = '1.3';
+            cell.style.verticalAlign = 'top';
+          });
+
+          // ستون اول (در RTL معمولاً سمت راست)
+          // اگر کلاس خاصی داری می‌تونی دقیق‌تر هدف بگیری
+          const firstCells = clonedCard.querySelectorAll('tr > th:first-child, tr > td:first-child');
+          firstCells.forEach(cell => {
+            cell.style.minWidth = '120px';    // حداقل عرض ستون اول
+            cell.style.maxWidth = '220px';    // حداکثر عرض تا بقیه ستون‌ها جا بشن
+            cell.style.wordBreak = 'break-word';
+          });
+        }
       },
       jsPDF: {
         unit: 'mm',
         format: 'a3',
         orientation: 'landscape'
       },
-      pagebreak: { 
-        mode: ['css', 'legacy'],     // 'avoid-all' رو حذف کردیم
-        before: '.page-break-before',
-        after: '.page-break-after',
+      pagebreak: {
+        mode: ['css', 'legacy'],
         avoid: ['tr', 'td', 'th', '#pdfHeaderTemp']
       }
     };
@@ -2145,7 +2174,6 @@ async function pdf() {
     tableCard.style.cssText = originalCardStyle;
   }
 }
-
 
 // =====================================================
 // GLOBAL FUNCTIONS
