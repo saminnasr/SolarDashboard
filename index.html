@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>داشبورد مدیریتی مناقصات نیروگاه</title>
+  <link rel="stylesheet" href="styles.css">
+  
+</head>
+<body>
+
+  
+  <!-- VIEW: LOGIN -->
+  <div id="loginView" class="login">
+    <div class="login-card">
+      <div class="logo">PT</div>
+      <h1>داشبورد مناقصات نیروگاه</h1>
+      <p>ورود به سامانه مدیریتی</p>
+      <form id="loginForm">
+        <label>ایمیل
+          <input id="email" type="email" required>
+        </label>
+        <label>رمز عبور
+          <input id="password" type="password" required>
+        </label>
+        <button class="primary" type="submit">ورود</button>
+        <div id="loginError" class="error"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- VIEW: APP DASHBOARD -->
+  <div id="appView" class="hidden">
+    <header>
+      <div>
+        <small>MANAGEMENT DASHBOARD</small>
+        <h1>داشبورد مناقصات نیروگاه</h1>
+        <span id="lastUpdated">آخرین بروزرسانی: —</span>
+      </div>
+      <div class="actions">
+        <button id="refreshBtn" onclick="load()">↻ بروزرسانی</button>
+        <button id="pdfBtn" class="primary" onclick="pdf()">▣ دانلود PDF</button>
+        <button id="logoutBtn" onclick="client.auth.signOut()">خروج</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- STATS CARDS -->
+      <section class="stats">
+        <div><span>کل مناقصه‌ها</span><b id="statTotal">۰</b></div>
+        <div><span>در حال پیگیری</span><b id="statTracking">۰</b></div>
+        <div><span>برنده‌شده</span><b id="statWon">۰</b></div>
+        <div><span>ظرفیت کل</span><b id="statCapacity">۰ MW</b></div>
+        <div><span>پیش‌بینی / آتی</span><b id="statUpcoming">۰</b></div>
+      </section>
+
+      <!-- TOOLBAR & FILTERS -->
+      <section class="toolbar">
+        <input id="searchInput" oninput="apply()" placeholder="جستجو در نام مناقصه، کارفرما، مشاور، پیشنهاددهنده یا شماره...">
+        
+        <select id="stageFilter" onchange="apply()">
+          <option value="">همه مراحل پیگیری</option>
+          <option value="ارسال مدارک اولیه">ارسال مدارک اولیه</option>
+          <option value="ارسال مدارک فنی و بازرگانی">ارسال مدارک فنی و بازرگانی</option>
+          <option value="  تنظیم اسناد مناقصه"> مرحله تنظیم اسناد</option>
+          <option value="مذاکر">مذاکرات قبل مناقصه</option>
+          <option value=" طراحی "> مرحله طراحی مهندسی</option>
+          <option value="تایید ">تایید مدارک فنی</option>
+        </select>
+
+    <select id="resultFilter" onchange="apply()">
+  <option value="">همه نتایج</option>
+  <option value="برنده">برنده و اخذ قرارداد</option>
+  <option value="در انتظار">در انتظار اعلام نتیجه</option>
+  <option value="تعویق">به تعویق افتاده</option>
+  <option value="لغو">لغو شده / منتفی</option>
+</select>
+
+        <button id="clearFiltersBtn" onclick="document.getElementById('searchInput').value=''; document.getElementById('stageFilter').value=''; document.getElementById('resultFilter').value=''; apply();">پاک کردن فیلترها</button>
+      </section>
+
+      <!-- TABLE CONTAINER -->
+      <section class="table-card">
+        <div class="report-title">
+          <h2>مناقصات در دست اقدام واحد تجدیدپذیر</h2>
+          <span>فهرست پیگیری مناقصات</span>
+        </div>
+        
+        <div class="table-head">
+          <div>
+            <h2>جدول مناقصات</h2>
+            <span id="rowCount">۰ مورد</span>
+          </div>
+          <div id="adminActions" class="admin hidden">
+            <button id="addBtn" class="primary" onclick="openModal()">＋ مناقصه جدید</button>
+            <button id="editModeBtn" onclick="S.editMode = !S.editMode; this.textContent = S.editMode ? '✓ اتمام ویرایش' : '✎ ویرایش جدول'; render();">✎ ویرایش جدول</button>
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>نام مناقصه (نیروگاه)</th>
+                <th>ظرفیت<br>(MW)</th>
+                <th>کارفرما</th>
+                <th>مشاور</th>
+                <th>تناژ تقریبی<br>(تن)</th>
+                <th>پیشنهاددهنده</th>
+                <th>زمان مناقصه /<br>پیش‌بینی</th>
+                <th>ملاحظات</th>
+                <th>مرحله پیگیری</th>
+                <th>نتیجه نهایی</th>
+                <th>شماره مناقصه</th>
+                <th class="admin-col hidden">عملیات</th>
+      
+              </tr>
+            </thead>
+            <tbody id="tenderBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL FORM -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="modalTitle">مناقصه جدید</h2>
+        <button id="closeModal" onclick="closeModal()">×</button>
+      </div>
+      
+      <form id="tenderForm" class="form" onsubmit="save(event)">
+        <label>نام مناقصه
+          <input id="fName" required>
+        </label>
+        <label>ظرفیت (MW)
+          <input id="fCapacity">
+        </label>
+        <label>کارفرما
+          <input id="fEmployer">
+        </label>
+        <label>مشاور
+          <input id="fConsultant">
+        </label>
+        <label>تناژ تقریبی (تن)
+          <input id="fTonnage">
+        </label>
+        <label>پیشنهاددهنده
+          <input id="fBidder">
+        </label>
+        <label>زمان مناقصه / پیش‌بینی
+          <input id="fTime">
+        </label>
+        <label>شماره مناقصه
+          <input id="fNumber">
+        </label>
+        <label>مرحله پیگیری
+          <input id="fStage" placeholder=" ارسال مدارک فنی و بازرگانی">
+        </label>
+        <label>نتیجه نهایی
+          <input id="fResult" placeholder="برنده و اخذ قرارداد">
+        </label>
+        <label class="full">ملاحظات
+          <textarea id="fNotes" rows="4"></textarea>
+        </label>
+        
+        <div class="full modal-actions">
+          <button type="button" id="cancelModal" onclick="closeModal()">انصراف</button>
+          <button class="primary" type="submit">ذخیره</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
