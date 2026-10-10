@@ -303,42 +303,109 @@ main {
   gap: 7px;
 }
 
+
+/* =========================
+   TABLE SCROLL
+========================= */
+
 .table-scroll {
-  overflow: auto;
+  width: 100%;
+  max-width: 100%;
+
+  overflow-x: auto;
+  overflow-y: auto;
+
   max-height: 72vh;
 }
 
+
+/* =========================
+   TABLE
+========================= */
+
 .table-scroll table {
-  width: 100%;
+  /*
+    مهم:
+    جدول نباید خودش را در عرض صفحه فشرده کند.
+    باید به اندازه محتوای خودش عرض داشته باشد
+    و پایین آن اسکرول افقی ایجاد شود.
+  */
+
+  width: max-content;
+  min-width: 2100px;
+
   border-collapse: collapse;
-  min-width: 1450px;
-  table-layout: fixed;
+
+  /*
+    این خط خیلی مهم است.
+    table-layout: fixed را حذف کردیم.
+  */
+  table-layout: auto;
 }
+
+
+/* =========================
+   HEADER
+========================= */
 
 .table-scroll th {
   position: sticky;
   top: 0;
+
   background: var(--head);
   color: #fff;
+
   z-index: 2;
+
   font-size: 12px;
   font-weight: 700;
+
   text-align: center;
-  padding: 10px 8px;
+
+  padding: 10px 10px;
+
   border: 1px solid #707274;
+
   white-space: normal;
+
   line-height: 1.55;
+
+  /*
+    اجازه نمی‌دهیم کلمه به حروف تک‌تک شکسته شود.
+  */
+  word-break: normal;
+  overflow-wrap: normal;
 }
+
+
+/* =========================
+   BODY
+========================= */
 
 .table-scroll td {
   padding: 10px 9px;
+
   border: 1px solid #c9ccce;
+
   font-size: 12px;
+
   line-height: 1.7;
+
   vertical-align: middle;
+
   text-align: center;
-  word-break: break-word;
+
+  /*
+    قبلاً break-word باعث می‌شد
+    در ستون‌های خیلی باریک متن بد شکسته شود.
+  */
+  word-break: normal;
+
+  overflow-wrap: normal;
 }
+
+
+/* ردیف‌های یکی در میان */
 
 .table-scroll tbody tr:nth-child(odd) {
   background: var(--stripe);
@@ -352,57 +419,199 @@ main {
   background: #f0f1f1;
 }
 
-.table-scroll th:nth-child(1) {
-  width: 12%;
+
+/* =========================
+   COLUMN WIDTHS
+========================= */
+
+/*
+  ستون 1 = نام مناقصه
+*/
+
+.table-scroll th:nth-child(1),
+.table-scroll td:nth-child(1) {
+  min-width: 180px;
 }
 
-.table-scroll th:nth-child(2) {
-  width: 7%;
+
+/*
+  ستون 2 = ظرفیت
+*/
+
+.table-scroll th:nth-child(2),
+.table-scroll td:nth-child(2) {
+  min-width: 90px;
 }
 
-.table-scroll th:nth-child(3) {
-  width: 10%;
+
+/*
+  ستون 3 = کارفرما
+*/
+
+.table-scroll th:nth-child(3),
+.table-scroll td:nth-child(3) {
+  min-width: 130px;
 }
 
-.table-scroll th:nth-child(4) {
-  width: 10%;
+
+/*
+  ستون 4 = مشاور
+*/
+
+.table-scroll th:nth-child(4),
+.table-scroll td:nth-child(4) {
+  min-width: 130px;
 }
 
-.table-scroll th:nth-child(5) {
-  width: 11%;
+
+/*
+  ستون 5 = تناژ تقریبی
+*/
+
+.table-scroll th:nth-child(5),
+.table-scroll td:nth-child(5) {
+  min-width: 120px;
 }
 
-.table-scroll th:nth-child(6) {
-  width: 8%;
+
+/*
+  ستون 6 = پیشنهاددهنده
+*/
+
+.table-scroll th:nth-child(6),
+.table-scroll td:nth-child(6) {
+  min-width: 130px;
 }
 
-.table-scroll th:nth-child(7) {
-  width: 11%;
+
+/*
+  ستون 7 = زمان مناقصه / پیش‌بینی
+*/
+
+.table-scroll th:nth-child(7),
+.table-scroll td:nth-child(7) {
+  min-width: 155px;
 }
 
-.table-scroll th:nth-child(8) {
-  width: 15%;
+
+/*
+  ستون 8 = شماره مناقصه
+*/
+
+.table-scroll th:nth-child(8),
+.table-scroll td:nth-child(8) {
+  min-width: 135px;
 }
 
-.table-scroll th:nth-child(9) {
-  width: 10%;
+
+/*
+  ستون 9 = شهر و استان
+*/
+
+.table-scroll th:nth-child(9),
+.table-scroll td:nth-child(9) {
+  min-width: 140px;
 }
 
-.table-scroll th:nth-child(10) {
-  width: 9%;
+
+/*
+  ستون 10 = نوع سازه
+*/
+
+.table-scroll th:nth-child(10),
+.table-scroll td:nth-child(10) {
+  min-width: 120px;
 }
 
-.table-scroll th:nth-child(11) {
-  width: 90px;
+
+/*
+  ستون 11 = بار باد و بار برف
+*/
+
+.table-scroll th:nth-child(11),
+.table-scroll td:nth-child(11) {
+  min-width: 150px;
 }
+
+
+/*
+  ستون 12 = وزن سازه
+*/
+
+.table-scroll th:nth-child(12),
+.table-scroll td:nth-child(12) {
+  min-width: 110px;
+}
+
+
+/*
+  ستون 13 = ملاحظات
+*/
+
+.table-scroll th:nth-child(13),
+.table-scroll td:nth-child(13) {
+  min-width: 220px;
+}
+
+
+/*
+  ستون 14 = مرحله پیگیری
+*/
+
+.table-scroll th:nth-child(14),
+.table-scroll td:nth-child(14) {
+  min-width: 180px;
+}
+
+
+/*
+  ستون 15 = قیمت پیشنهادی
+*/
+
+.table-scroll th:nth-child(15),
+.table-scroll td:nth-child(15) {
+  min-width: 150px;
+}
+
+
+/*
+  ستون 16 = نتیجه نهایی
+*/
+
+.table-scroll th:nth-child(16),
+.table-scroll td:nth-child(16) {
+  min-width: 170px;
+}
+
+
+/*
+  ستون 17 = عملیات
+*/
+
+.table-scroll th:nth-child(17),
+.table-scroll td:nth-child(17) {
+  min-width: 140px;
+
+  white-space: nowrap;
+}
+
+
+/* =========================
+   SPECIAL CELLS
+========================= */
 
 .project-cell {
   text-align: right !important;
+
   font-weight: 700;
+
+  min-width: 180px;
 }
 
 .number-cell {
   direction: rtl;
+
+  white-space: nowrap;
 }
 
 .date-cell {
@@ -411,14 +620,33 @@ main {
 
 .notes-cell {
   text-align: right !important;
+
+  min-width: 220px;
+
+  white-space: normal !important;
+
+  word-break: normal !important;
+
+  overflow-wrap: break-word;
 }
+
+
+/* =========================
+   BADGES
+========================= */
 
 .badge {
   display: inline-block;
+
   padding: 3px 7px;
+
   border-radius: 2px;
+
   background: #d8dcde;
+
   white-space: normal;
+
+  line-height: 1.6;
 }
 
 .won {
@@ -441,19 +669,52 @@ main {
   color: #333;
 }
 
+
+/* =========================
+   ACTIONS
+========================= */
+
 .actions-cell {
   white-space: nowrap;
 }
 
 .actions-cell button {
   border: 1px solid #bbb;
+
   background: #fff;
+
   border-radius: 2px;
+
   padding: 4px 7px;
+
   font-size: 11px;
+
   margin: 2px;
 }
 
+
+/* =========================
+   SCROLLBAR
+========================= */
+
+.table-scroll::-webkit-scrollbar {
+  height: 12px;
+  width: 10px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: #e5e5e3;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #8d9193;
+
+  border-radius: 3px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #707476;
+}
 
 /* =========================
    MODAL
