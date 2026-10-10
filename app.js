@@ -1,5 +1,6 @@
+
 // =====================================================
-// SUPABASE CLIENT
+// TENDER TRACKER — APP.JS
 // =====================================================
 
 let client = null;
@@ -13,7 +14,9 @@ const S = {
   filtered: [],
   editingId: null,
   editMode: false,
-  columns: []
+  columns: [],
+  loading: false,
+  saving: false
 };
 
 const $ = id => document.getElementById(id);
@@ -26,47 +29,120 @@ const GROUP_B = 'group_b';
 // =====================================================
 
 const COLUMN_DEFS = {
-  tender_name:      { label: 'نام مناقصه', groups: ['group_a', 'group_b'], always: true },
-  capacity_mw:      { label: 'ظرفیت (MW)', groups: ['group_a', 'group_b'], always: true },
-  employer:         { label: 'کارفرما', groups: ['group_a', 'group_b'], always: true },
-  consultant:       { label: 'مشاور', groups: ['group_a'], always: false },
-  tonnage:          { label: 'تناژ تقریبی (تن)', groups: ['group_a'], always: false },
-  proposer:         { label: 'پیشنهاددهنده', groups: ['group_b'], always: false },
-  tender_date:      { label: 'زمان مناقصه / پیش‌بینی', groups: ['group_a', 'group_b'], always: true },
-  tender_number:    { label: 'شماره مناقصه', groups: ['group_a', 'group_b'], always: true },
-  city_province:    { label: 'شهر و استان', groups: ['group_a'], always: false },
-  structure_type:   { label: 'نوع سازه', groups: ['group_a'], always: false },
-  wind_snow:        { label: 'بار باد و بار برف', groups: ['group_a'], always: false },
-  structure_weight: { label: 'وزن سازه', groups: ['group_a'], always: false },
-  notes:            { label: 'ملاحظات', groups: ['group_b'], always: false },
-  follow_up_stage:  { label: 'مرحله پیگیری', groups: ['group_b'], always: false },
-  proposed_price:   { label: 'قیمت پیشنهادی', groups: ['group_b'], always: false },
-  final_result:     { label: 'نتیجه نهایی', groups: [], always: false }
+  tender_name: {
+    label: 'نام مناقصه',
+    groups: [GROUP_A, GROUP_B]
+  },
+  capacity_mw: {
+    label: 'ظرفیت (MW)',
+    groups: [GROUP_A, GROUP_B]
+  },
+  employer: {
+    label: 'کارفرما',
+    groups: [GROUP_A, GROUP_B]
+  },
+  consultant: {
+    label: 'مشاور',
+    groups: [GROUP_A]
+  },
+  tonnage: {
+    label: 'تناژ تقریبی (تن)',
+    groups: [GROUP_A]
+  },
+  proposer: {
+    label: 'پیشنهاددهنده',
+    groups: [GROUP_B]
+  },
+  tender_date: {
+    label: 'زمان مناقصه / پیش‌بینی',
+    groups: [GROUP_A, GROUP_B]
+  },
+  tender_number: {
+    label: 'شماره مناقصه',
+    groups: [GROUP_A, GROUP_B]
+  },
+  city_province: {
+    label: 'شهر و استان',
+    groups: [GROUP_A]
+  },
+  structure_type: {
+    label: 'نوع سازه',
+    groups: [GROUP_A]
+  },
+  wind_snow: {
+    label: 'بار باد و بار برف',
+    groups: [GROUP_A]
+  },
+  structure_weight: {
+    label: 'وزن سازه',
+    groups: [GROUP_A]
+  },
+  notes: {
+    label: 'ملاحظات',
+    groups: [GROUP_B]
+  },
+  follow_up_stage: {
+    label: 'مرحله پیگیری',
+    groups: [GROUP_B]
+  },
+  proposed_price: {
+    label: 'قیمت پیشنهادی',
+    groups: [GROUP_B]
+  },
+  final_result: {
+    label: 'نتیجه نهایی',
+    groups: []
+  }
 };
 
 function visibleColumns() {
   if (S.isAdmin) {
     return [
-      'tender_name', 'capacity_mw', 'employer', 'consultant',
-      'tonnage', 'proposer', 'tender_date', 'tender_number',
-      'city_province', 'structure_type', 'wind_snow',
-      'structure_weight', 'notes', 'follow_up_stage',
-      'proposed_price', 'final_result'
+      'tender_name',
+      'capacity_mw',
+      'employer',
+      'consultant',
+      'tonnage',
+      'proposer',
+      'tender_date',
+      'tender_number',
+      'city_province',
+      'structure_type',
+      'wind_snow',
+      'structure_weight',
+      'notes',
+      'follow_up_stage',
+      'proposed_price',
+      'final_result'
     ];
   }
 
   if (S.userGroup === GROUP_A) {
     return [
-      'tender_name', 'capacity_mw', 'employer', 'consultant',
-      'tonnage', 'tender_date', 'tender_number', 'city_province',
-      'structure_type', 'wind_snow', 'structure_weight'
+      'tender_name',
+      'capacity_mw',
+      'employer',
+      'consultant',
+      'tonnage',
+      'tender_date',
+      'tender_number',
+      'city_province',
+      'structure_type',
+      'wind_snow',
+      'structure_weight'
     ];
   }
 
   if (S.userGroup === GROUP_B) {
     return [
-      'tender_name', 'capacity_mw', 'employer', 'proposer',
-      'tender_date', 'tender_number', 'notes', 'follow_up_stage',
+      'tender_name',
+      'capacity_mw',
+      'employer',
+      'proposer',
+      'tender_date',
+      'tender_number',
+      'notes',
+      'follow_up_stage',
       'proposed_price'
     ];
   }
@@ -74,17 +150,22 @@ function visibleColumns() {
   return [];
 }
 
-function cellValue(t, key) {
+function cellValue(tender, key) {
   switch (key) {
     case 'city_province':
-      return [t.city, t.province].filter(Boolean).join('، ') || '—';
+      return [
+        tender.city,
+        tender.province
+      ].filter(Boolean).join('، ') || '—';
+
     case 'wind_snow':
       return [
-        t.wind_load ? `باد: ${t.wind_load}` : '',
-        t.snow_load ? `برف: ${t.snow_load}` : ''
+        tender.wind_load ? `باد: ${tender.wind_load}` : '',
+        tender.snow_load ? `برف: ${tender.snow_load}` : ''
       ].filter(Boolean).join(' | ') || '—';
+
     default:
-      return t[key] ?? '—';
+      return tender[key] ?? '—';
   }
 }
 
@@ -93,21 +174,26 @@ function cellValue(t, key) {
 // =====================================================
 
 function fa(value) {
-  return String(value ?? '').replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+  return String(value ?? '').replace(
+    /\d/g,
+    digit => '۰۱۲۳۴۵۶۷۸۹'[digit]
+  );
 }
 
 function norm(value) {
-  return String(value ?? '').trim().toLowerCase();
+  return String(value ?? '')
+    .trim()
+    .toLocaleLowerCase('fa-IR');
 }
 
 function esc(value) {
-  return String(value ?? '').replace(/[&<>"']/g, m => ({
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
     "'": '&#039;'
-  }[m]));
+  })[char]);
 }
 
 function initSupabase() {
@@ -116,7 +202,12 @@ function initSupabase() {
     !APP_CONFIG.SUPABASE_URL ||
     !APP_CONFIG.SUPABASE_KEY
   ) {
-    console.error('APP_CONFIG is missing.');
+    console.error('APP_CONFIG is missing or incomplete.');
+    return false;
+  }
+
+  if (typeof supabase === 'undefined') {
+    console.error('Supabase JavaScript library was not loaded.');
     return false;
   }
 
@@ -129,16 +220,21 @@ function initSupabase() {
 }
 
 function toast(message) {
-  const el = $('toast');
-  if (!el) {
+  const element = $('toast');
+
+  if (!element) {
     console.log(message);
     return;
   }
 
-  el.textContent = message;
-  el.classList.add('show');
+  element.textContent = message;
+  element.classList.add('show');
 
-  setTimeout(() => el.classList.remove('show'), 3000);
+  clearTimeout(toast.timer);
+
+  toast.timer = setTimeout(() => {
+    element.classList.remove('show');
+  }, 3500);
 }
 
 function showLogin() {
@@ -158,15 +254,23 @@ function hideLogin() {
 async function handleLogin(event) {
   event.preventDefault();
 
+  if (!client) {
+    toast('اتصال سامانه برقرار نیست.');
+    return;
+  }
+
   const email = $('email')?.value.trim();
   const password = $('password')?.value;
   const errorBox = $('loginError');
-  const submitButton = $('loginForm')?.querySelector('[type="submit"]');
+  const submitButton = $('loginForm')
+    ?.querySelector('[type="submit"]');
 
   if (errorBox) errorBox.textContent = '';
 
   if (!email || !password) {
-    if (errorBox) errorBox.textContent = 'ایمیل و رمز عبور را وارد کنید.';
+    if (errorBox) {
+      errorBox.textContent = 'ایمیل و رمز عبور را وارد کنید.';
+    }
     return;
   }
 
@@ -183,9 +287,12 @@ async function handleLogin(event) {
 
     if (error) throw error;
 
-    if (data?.user) {
-      await loginUser(data.user);
+    if (!data?.user) {
+      throw new Error('اطلاعات حساب کاربری دریافت نشد.');
     }
+
+    await loginUser(data.user);
+
   } catch (error) {
     console.error('LOGIN ERROR:', error);
 
@@ -202,6 +309,10 @@ async function handleLogin(event) {
     }
   }
 }
+
+// =====================================================
+// LOAD USER PROFILE
+// =====================================================
 
 async function loginUser(user) {
   if (!user || !client) return;
@@ -222,30 +333,44 @@ async function loginUser(user) {
     if (error) throw error;
 
     if (!profile) {
-      throw new Error('برای این حساب، پروفایل کاربری ثبت نشده است.');
+      throw new Error(
+        'برای این حساب پروفایل ثبت نشده است. با مدیر سامانه تماس بگیرید.'
+      );
     }
 
     S.profile = profile;
     S.isAdmin = profile.is_admin === true;
     S.userGroup = profile.user_group;
 
-    if (!S.isAdmin && ![GROUP_A, GROUP_B].includes(S.userGroup)) {
-      throw new Error('گروه کاربری شما مشخص نیست. با مدیر سامانه تماس بگیرید.');
+    if (
+      !S.isAdmin &&
+      ![GROUP_A, GROUP_B].includes(S.userGroup)
+    ) {
+      throw new Error('گروه کاربری این حساب مشخص نیست.');
     }
 
     S.columns = visibleColumns();
 
     hideLogin();
     updateAdminUI();
-    buildTableHeaders();
     configureFilters();
     configureStats();
+    buildTableHeaders();
+
     await load();
 
   } catch (error) {
-    console.error('PROFILE ERROR:', error);
-    toast(error.message || 'سطح دسترسی کاربر مشخص نشد.');
+    console.error('PROFILE / LOGIN USER ERROR:', error);
+
+    if ($('loginError')) {
+      $('loginError').textContent =
+        error.message || 'خطا در دریافت اطلاعات کاربر.';
+    }
+
+    toast(error.message || 'خطا در دریافت اطلاعات کاربر.');
+
     await client.auth.signOut();
+    resetUserState();
     showLogin();
   }
 }
@@ -260,6 +385,7 @@ async function logout() {
   const { error } = await client.auth.signOut();
 
   if (error) {
+    console.error('LOGOUT ERROR:', error);
     toast('خطا در خروج از حساب: ' + error.message);
     return;
   }
@@ -278,23 +404,33 @@ function resetUserState() {
   S.editMode = false;
   S.editingId = null;
   S.columns = [];
-
-  updateAdminUI();
+  S.loading = false;
+  S.saving = false;
 
   if ($('email')) $('email').value = '';
   if ($('password')) $('password').value = '';
+  if ($('loginError')) $('loginError').textContent = '';
+
+  if ($('tenderBody')) $('tenderBody').innerHTML = '';
+
+  if ($('searchInput')) $('searchInput').value = '';
+  if ($('stageFilter')) $('stageFilter').value = '';
+  if ($('resultFilter')) $('resultFilter').value = '';
+
+  updateAdminUI();
 }
 
 // =====================================================
-// ADMIN CONTROLS
+// ADMIN UI
 // =====================================================
 
 function updateAdminUI() {
-  document.querySelectorAll('.admin').forEach(el => {
-    el.classList.toggle('hidden', !S.isAdmin);
+  document.querySelectorAll('.admin').forEach(element => {
+    element.classList.toggle('hidden', !S.isAdmin);
   });
 
   const editButton = $('editModeBtn');
+
   if (editButton) {
     editButton.textContent = S.editMode
       ? '✓ اتمام ویرایش'
@@ -302,20 +438,26 @@ function updateAdminUI() {
   }
 
   const title = document.querySelector('.table-head h2');
+
   if (title) {
     title.textContent = S.isAdmin
       ? 'جدول کامل مناقصات'
       : S.userGroup === GROUP_A
         ? 'جدول مناقصات - گروه فنی'
-        : 'جدول مناقصات - گروه بازرگانی';
+        : S.userGroup === GROUP_B
+          ? 'جدول مناقصات - گروه بازرگانی'
+          : 'فهرست مناقصات';
   }
 
   const reportTitle = document.querySelector('.report-title h2');
+
   if (reportTitle) {
     reportTitle.textContent = S.isAdmin
       ? 'مناقصات در دست اقدام واحد تجدیدپذیر'
       : 'گزارش مناقصات';
   }
+
+  buildTableHeaders();
 }
 
 function toggleEditMode() {
@@ -325,6 +467,7 @@ function toggleEditMode() {
   }
 
   S.editMode = !S.editMode;
+
   updateAdminUI();
   buildTableHeaders();
   render();
@@ -335,12 +478,14 @@ function toggleEditMode() {
 // =====================================================
 
 function buildTableHeaders() {
-  const thead = document.querySelector('table thead');
+  const thead = document.querySelector('.table-scroll table thead');
+
   if (!thead) return;
 
-  const headers = S.columns.map(key =>
-    `<th>${esc(COLUMN_DEFS[key].label)}</th>`
-  );
+  const headers = S.columns.map(key => {
+    const definition = COLUMN_DEFS[key];
+    return `<th scope="col">${esc(definition?.label || key)}</th>`;
+  });
 
   if (S.isAdmin && S.editMode) {
     headers.push('<th class="admin-col">عملیات</th>');
@@ -350,7 +495,7 @@ function buildTableHeaders() {
 }
 
 // =====================================================
-// FILTER VISIBILITY
+// FILTERS
 // =====================================================
 
 function configureFilters() {
@@ -369,9 +514,18 @@ function configureFilters() {
   }
 
   const search = $('searchInput');
+
   if (search) {
     search.placeholder = 'جستجو در ستون‌های قابل مشاهده...';
   }
+}
+
+function clearFilters() {
+  if ($('searchInput')) $('searchInput').value = '';
+  if ($('stageFilter')) $('stageFilter').value = '';
+  if ($('resultFilter')) $('resultFilter').value = '';
+
+  apply();
 }
 
 // =====================================================
@@ -379,7 +533,7 @@ function configureFilters() {
 // =====================================================
 
 function configureStats() {
-  const statVisibility = {
+  const visibility = {
     statTotal: true,
     statTracking: S.isAdmin || S.userGroup === GROUP_B,
     statWon: S.isAdmin,
@@ -387,57 +541,30 @@ function configureStats() {
     statUpcoming: S.isAdmin
   };
 
-  for (const [id, visible] of Object.entries(statVisibility)) {
-    const el = $(id);
-    if (el) {
-      const card = el.closest('.stats > div') || el.parentElement;
-      if (card) card.classList.toggle('hidden', !visible);
-    }
-  }
-}
+  Object.entries(visibility).forEach(([id, visible]) => {
+    const element = $(id);
+    const card = element?.closest('.stats > div');
 
-// =====================================================
-// BOOT
-// =====================================================
-
-async function boot() {
-  if (!initSupabase()) {
-    showLogin();
-    if ($('loginError')) {
-      $('loginError').textContent = 'تنظیمات config.js صحیح نیست.';
-    }
-    return;
-  }
-
-  showLogin();
-
-  const { data, error } = await client.auth.getSession();
-
-  if (error) {
-    console.error('SESSION ERROR:', error);
-    return;
-  }
-
-  if (data?.session?.user) {
-    await loginUser(data.session.user);
-  }
-
-  client.auth.onAuthStateChange((event) => {
-    if (event === 'SIGNED_OUT') {
-      resetUserState();
-      showLogin();
+    if (card) {
+      card.classList.toggle('hidden', !visible);
     }
   });
 }
 
 // =====================================================
-// LOAD DATA THROUGH SECURE RPC
+// LOAD TENDERS THROUGH RPC
 // =====================================================
 
 async function load() {
   if (!client || !S.user) return false;
 
+  if (S.loading) return false;
+
+  S.loading = true;
+
   try {
+    console.log('Loading tenders through get_visible_tenders...');
+
     const { data, error } = await client.rpc('get_visible_tenders');
 
     if (error) throw error;
@@ -453,15 +580,24 @@ async function load() {
     }
 
     return true;
+
   } catch (error) {
-    console.error('LOAD ERROR:', error);
-    toast('خطا در دریافت اطلاعات: ' + error.message);
+    console.error(
+      'LOAD ERROR DETAILS:',
+      JSON.stringify(error, null, 2)
+    );
+
+    toast('خطا در دریافت مناقصه‌ها: ' + error.message);
+
     return false;
+
+  } finally {
+    S.loading = false;
   }
 }
 
 // =====================================================
-// FILTER
+// SEARCH / FILTER LOGIC
 // =====================================================
 
 function apply() {
@@ -469,20 +605,21 @@ function apply() {
   const stage = norm($('stageFilter')?.value);
   const result = norm($('resultFilter')?.value);
 
-  S.filtered = S.tenders.filter(t => {
+  S.filtered = S.tenders.filter(tender => {
     const searchable = S.columns
-      .map(key => cellValue(t, key))
+      .map(key => cellValue(tender, key))
       .join(' ');
 
-    const matchesSearch = !search || norm(searchable).includes(search);
+    const matchesSearch =
+      !search || norm(searchable).includes(search);
 
     const matchesStage =
-      !stage || norm(t.follow_up_stage).includes(stage);
+      !stage || norm(tender.follow_up_stage).includes(stage);
 
     const matchesResult =
       !S.isAdmin ||
       !result ||
-      norm(t.final_result).includes(result);
+      norm(tender.final_result).includes(result);
 
     return matchesSearch && matchesStage && matchesResult;
   });
@@ -491,61 +628,101 @@ function apply() {
   stats();
 }
 
-function clearFilters() {
-  if ($('searchInput')) $('searchInput').value = '';
-  if ($('stageFilter')) $('stageFilter').value = '';
-  if ($('resultFilter')) $('resultFilter').value = '';
-  apply();
-}
-
 // =====================================================
 // RENDER TABLE
 // =====================================================
 
+function resultClass(value) {
+  const result = norm(value);
+
+  if (result.includes('برنده')) return 'won';
+  if (result.includes('بازنده') || result.includes('عدم پذیرش')) {
+    return 'lost';
+  }
+  if (result.includes('انتظار') || result.includes('در حال')) {
+    return 'wait';
+  }
+
+  return '';
+}
+
 function render() {
   const body = $('tenderBody');
+
   if (!body) return;
 
   if ($('rowCount')) {
-    $('rowCount').textContent = fa(S.filtered.length) + ' مورد';
+    $('rowCount').textContent =
+      fa(S.filtered.length) + ' مورد';
   }
 
   if (!S.filtered.length) {
-    const count = S.columns.length + (S.isAdmin && S.editMode ? 1 : 0);
+    const columnCount =
+      S.columns.length + (S.isAdmin && S.editMode ? 1 : 0);
+
     body.innerHTML = `
       <tr>
-        <td colspan="${count}" style="text-align:center;padding:45px">
+        <td colspan="${Math.max(1, columnCount)}"
+            style="text-align:center;padding:40px 15px">
           موردی برای نمایش وجود ندارد.
         </td>
-      </tr>`;
+      </tr>
+    `;
+
     return;
   }
 
-  body.innerHTML = S.filtered.map(t => {
+  body.innerHTML = S.filtered.map(tender => {
     const cells = S.columns.map(key => {
-      const value = cellValue(t, key);
-      const className =
-        key === 'tender_name' ? 'project-cell' :
-        ['capacity_mw', 'tonnage', 'proposed_price'].includes(key) ? 'number-cell' :
-        key === 'tender_date' ? 'date-cell' :
-        key === 'notes' ? 'notes-cell' : '';
+      const value = cellValue(tender, key);
 
-      const content =
-        key === 'follow_up_stage'
-          ? `<span class="badge stage-badge">${esc(value)}</span>`
-          : key === 'final_result'
-            ? `<span class="badge result-badge">${esc(value)}</span>`
-            : esc(value);
+      let className = '';
+
+      if (key === 'tender_name') {
+        className = 'project-cell';
+      } else if (
+        ['capacity_mw', 'tonnage', 'proposed_price', 'structure_weight']
+          .includes(key)
+      ) {
+        className = 'number-cell';
+      } else if (key === 'tender_date') {
+        className = 'date-cell';
+      } else if (key === 'notes') {
+        className = 'notes-cell';
+      }
+
+      let content = esc(value);
+
+      if (key === 'follow_up_stage') {
+        content = `<span class="badge stage-badge">${esc(value)}</span>`;
+      }
+
+      if (key === 'final_result') {
+        content = `
+          <span class="badge ${resultClass(value)}">
+            ${esc(value)}
+          </span>
+        `;
+      }
 
       return `<td class="${className}">${content}</td>`;
     });
 
     if (S.isAdmin && S.editMode) {
+      const safeId = esc(tender.id);
+
       cells.push(`
         <td class="actions-cell">
-          <button type="button" onclick="editTender('${esc(t.id)}')">ویرایش</button>
-          <button type="button" onclick="deleteTender('${esc(t.id)}')">حذف</button>
-        </td>`);
+          <button type="button"
+            onclick="editTender('${safeId}')">
+            ویرایش
+          </button>
+          <button type="button"
+            onclick="deleteTender('${safeId}')">
+            حذف
+          </button>
+        </td>
+      `);
     }
 
     return `<tr>${cells.join('')}</tr>`;
@@ -560,29 +737,54 @@ function stats() {
   const total = S.tenders.length;
 
   const won = S.isAdmin
-    ? S.tenders.filter(t => norm(t.final_result).includes('برنده')).length
+    ? S.tenders.filter(tender =>
+        norm(tender.final_result).includes('برنده')
+      ).length
     : 0;
 
-  const tracking = S.userGroup === GROUP_B || S.isAdmin
-    ? S.tenders.filter(t => t.follow_up_stage && t.follow_up_stage !== '-').length
+  const tracking = S.isAdmin || S.userGroup === GROUP_B
+    ? S.tenders.filter(tender =>
+        String(tender.follow_up_stage || '').trim() !== ''
+        && String(tender.follow_up_stage || '').trim() !== '-'
+      ).length
     : 0;
 
   const upcoming = S.isAdmin
-    ? S.tenders.filter(t => !String(t.final_result || '').trim()).length
+    ? S.tenders.filter(tender =>
+        !String(tender.final_result || '').trim()
+      ).length
     : 0;
 
   let capacity = 0;
-  S.tenders.forEach(t => {
-    // ظرفیت متنی نگهداری می‌شود؛ اینجا فقط مقدار عددی ساده جمع می‌شود.
-    const raw = String(t.capacity_mw || '').trim();
-    if (/^\d+(\.\d+)?$/.test(raw)) capacity += Number(raw);
+
+  S.tenders.forEach(tender => {
+    const raw = String(tender.capacity_mw || '').trim();
+
+    if (/^\d+(\.\d+)?$/.test(raw)) {
+      capacity += Number(raw);
+    }
   });
 
-  if ($('statTotal')) $('statTotal').textContent = fa(total);
-  if ($('statTracking')) $('statTracking').textContent = fa(tracking);
-  if ($('statWon')) $('statWon').textContent = fa(won);
-  if ($('statCapacity')) $('statCapacity').textContent = fa(capacity.toFixed(1)) + ' MW';
-  if ($('statUpcoming')) $('statUpcoming').textContent = fa(upcoming);
+  if ($('statTotal')) {
+    $('statTotal').textContent = fa(total);
+  }
+
+  if ($('statTracking')) {
+    $('statTracking').textContent = fa(tracking);
+  }
+
+  if ($('statWon')) {
+    $('statWon').textContent = fa(won);
+  }
+
+  if ($('statCapacity')) {
+    $('statCapacity').textContent =
+      fa(capacity.toFixed(1)) + ' MW';
+  }
+
+  if ($('statUpcoming')) {
+    $('statUpcoming').textContent = fa(upcoming);
+  }
 }
 
 // =====================================================
@@ -612,25 +814,38 @@ const FORM_FIELDS = [
 
 function prepareForm() {
   const form = $('tenderForm');
+
   if (!form || form.dataset.prepared === 'yes') return;
 
   form.innerHTML = `
     ${FORM_FIELDS.map(([key, label, required]) => `
-      <label class="${key === 'notes' ? 'full' : ''}">
+      <label class="${key === 'notes' ? 'full' : ''}" for="f_${key}">
         ${esc(label)}
-        ${key === 'notes'
-          ? `<textarea id="f_${key}" rows="3"></textarea>`
-          : `<input id="f_${key}" ${required ? 'required' : ''} autocomplete="off">`}
+
+        ${
+          key === 'notes'
+            ? `<textarea id="f_${key}" name="${key}" rows="3"></textarea>`
+            : `<input
+                id="f_${key}"
+                name="${key}"
+                type="text"
+                autocomplete="off"
+                ${required ? 'required' : ''}
+              >`
+        }
       </label>
     `).join('')}
+
     <div class="full modal-actions">
       <button type="button" onclick="closeModal()">انصراف</button>
-      <button class="primary" type="submit">ذخیره</button>
+      <button class="primary" type="submit">ذخیره مناقصه</button>
     </div>
   `;
 
-  form.dataset.prepared = 'yes';
+  // فقط یک بار رویداد submit به فرم متصل می‌شود.
   form.addEventListener('submit', save);
+
+  form.dataset.prepared = 'yes';
 }
 
 // =====================================================
@@ -644,18 +859,29 @@ function openModal(tender = null) {
   }
 
   prepareForm();
+
   S.editingId = tender?.id || null;
 
   if ($('modalTitle')) {
-    $('modalTitle').textContent = tender ? 'ویرایش مناقصه' : 'مناقصه جدید';
+    $('modalTitle').textContent =
+      tender ? 'ویرایش مناقصه' : 'ثبت مناقصه جدید';
   }
 
   FORM_FIELDS.forEach(([key]) => {
     const input = $(`f_${key}`);
-    if (input) input.value = tender?.[key] ?? '';
+
+    if (input) {
+      input.value = tender?.[key] ?? '';
+    }
   });
 
   $('modal')?.classList.remove('hidden');
+
+  const firstInput = $('f_tender_name');
+
+  if (firstInput) {
+    setTimeout(() => firstInput.focus(), 0);
+  }
 }
 
 function closeModal() {
@@ -664,7 +890,7 @@ function closeModal() {
 }
 
 // =====================================================
-// SAVE THROUGH SECURE RPC
+// SAVE THROUGH RPC
 // =====================================================
 
 async function save(event) {
@@ -675,34 +901,66 @@ async function save(event) {
     return;
   }
 
+  if (S.saving) return;
+
+  const form = $('tenderForm');
+
+  if (form && !form.reportValidity()) return;
+
+  const wasEditing = Boolean(S.editingId);
+  const tenderId = S.editingId || null;
   const payload = {};
 
   FORM_FIELDS.forEach(([key]) => {
     const input = $(`f_${key}`);
+
     payload[key] = input && input.value.trim() !== ''
       ? input.value.trim()
       : null;
   });
 
+  S.saving = true;
+
+  const submitButton = form?.querySelector('[type="submit"]');
+
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = 'در حال ذخیره...';
+  }
+
   try {
     const { data, error } = await client.rpc('save_tender', {
       p_payload: payload,
-      p_tender_id: S.editingId || null
+      p_tender_id: tenderId
     });
 
     if (error) throw error;
 
     closeModal();
 
-    const ok = await load();
-    if (ok) {
-      toast(S.editingId ? 'مناقصه ویرایش شد.' : 'مناقصه ثبت شد.');
+    const loaded = await load();
+
+    if (loaded) {
+      toast(wasEditing ? 'مناقصه ویرایش شد.' : 'مناقصه ثبت شد.');
     } else {
-      toast('عملیات ذخیره شد، اما بارگذاری مجدد اطلاعات موفق نبود.');
+      toast('ذخیره انجام شد، اما بروزرسانی جدول موفق نبود.');
     }
+
   } catch (error) {
-    console.error('SAVE ERROR:', error);
-    toast('خطا در ذخیره: ' + error.message);
+    console.error(
+      'SAVE ERROR DETAILS:',
+      JSON.stringify(error, null, 2)
+    );
+
+    toast('خطا در ذخیره مناقصه: ' + error.message);
+
+  } finally {
+    S.saving = false;
+
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = 'ذخیره مناقصه';
+    }
   }
 }
 
@@ -716,7 +974,9 @@ window.editTender = function(id) {
     return;
   }
 
-  const tender = S.tenders.find(t => String(t.id) === String(id));
+  const tender = S.tenders.find(
+    item => String(item.id) === String(id)
+  );
 
   if (!tender) {
     toast('مناقصه پیدا نشد. جدول را بروزرسانی کنید.');
@@ -732,7 +992,9 @@ window.deleteTender = async function(id) {
     return;
   }
 
-  if (!confirm('این مناقصه حذف شود؟')) return;
+  const confirmed = confirm('آیا از حذف این مناقصه مطمئن هستید؟');
+
+  if (!confirmed) return;
 
   try {
     const { error } = await client.rpc('delete_tender', {
@@ -741,16 +1003,24 @@ window.deleteTender = async function(id) {
 
     if (error) throw error;
 
-    await load();
-    toast('مناقصه حذف شد.');
+    const loaded = await load();
+
+    if (loaded) {
+      toast('مناقصه حذف شد.');
+    }
+
   } catch (error) {
-    console.error('DELETE ERROR:', error);
-    toast('خطا در حذف: ' + error.message);
+    console.error(
+      'DELETE ERROR DETAILS:',
+      JSON.stringify(error, null, 2)
+    );
+
+    toast('خطا در حذف مناقصه: ' + error.message);
   }
 };
 
 // =====================================================
-// PDF
+// EXPORT PDF
 // =====================================================
 
 async function pdf() {
@@ -765,6 +1035,7 @@ async function pdf() {
   }
 
   const original = document.querySelector('.table-card');
+
   if (!original) {
     toast('جدول پیدا نشد.');
     return;
@@ -773,58 +1044,102 @@ async function pdf() {
   const report = original.cloneNode(true);
 
   report.querySelectorAll(
-    '#adminActions, .actions-cell, .admin-col'
-  ).forEach(el => el.remove());
-
-  // ستون‌های خروجی دقیقاً همان ستون‌های مجاز نمایش‌داده‌شده هستند.
-  const host = document.createElement('div');
-  host.style.cssText = `
-    position:fixed;left:-30000px;top:0;width:1800px;
-    background:#fff;color:#222;direction:rtl;
-    font-family:Tahoma,sans-serif;padding:20px;
-  `;
-
-  report.style.cssText = `
-    display:block;width:100%;max-width:none;
-    height:auto;overflow:visible;background:#fff;
-  `;
+    '.admin, .actions-cell, .admin-col'
+  ).forEach(element => element.remove());
 
   const table = report.querySelector('table');
+
   if (table) {
-    table.style.cssText = 'width:100%;border-collapse:collapse;direction:rtl;';
+    table.style.cssText = `
+      width:100%;
+      min-width:0;
+      border-collapse:collapse;
+      table-layout:auto;
+      direction:rtl;
+    `;
 
     table.querySelectorAll('th').forEach(th => {
-      th.style.cssText =
-        'background:#505355;color:#fff;border:1px solid #999;padding:8px;text-align:center;';
+      th.style.cssText = `
+        background:#454b4e;
+        color:#fff;
+        border:1px solid #aaa;
+        padding:7px;
+        text-align:center;
+        white-space:normal;
+      `;
     });
 
     table.querySelectorAll('td').forEach(td => {
-      td.style.cssText =
-        'border:1px solid #ccc;padding:8px;vertical-align:top;word-break:break-word;';
+      td.style.cssText = `
+        border:1px solid #ccc;
+        padding:7px;
+        text-align:center;
+        vertical-align:top;
+        overflow-wrap:anywhere;
+      `;
     });
   }
 
   const now = new Date();
+
   const date = new Intl.DateTimeFormat('fa-IR', {
-    year: 'numeric', month: '2-digit', day: '2-digit'
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
   }).format(now);
 
   const heading = document.createElement('h2');
+
   heading.textContent = S.isAdmin
     ? 'گزارش کامل مناقصات'
     : S.userGroup === GROUP_A
       ? 'گزارش مناقصات - گروه فنی'
       : 'گزارش مناقصات - گروه بازرگانی';
 
-  heading.style.cssText = 'text-align:center;margin:0 0 12px;';
+  heading.style.cssText =
+    'text-align:center;margin:0 0 14px;font-size:18px;';
 
   const dateLine = document.createElement('p');
+
   dateLine.textContent = `تاریخ گزارش: ${date}`;
-  dateLine.style.cssText = 'text-align:left;';
+  dateLine.style.cssText =
+    'text-align:left;font-size:11px;margin-bottom:12px;';
 
   report.querySelector('.report-title')?.remove();
+
   report.insertBefore(dateLine, report.firstChild);
   report.insertBefore(heading, report.firstChild);
+
+  const host = document.createElement('div');
+
+  host.style.cssText = `
+    position:fixed;
+    left:-30000px;
+    top:0;
+    width:1600px;
+    padding:20px;
+    background:#fff;
+    color:#222;
+    direction:rtl;
+    font-family:Tahoma,sans-serif;
+  `;
+
+  report.style.cssText = `
+    display:block;
+    width:100%;
+    max-width:none;
+    height:auto;
+    overflow:visible;
+    background:#fff;
+    border:0;
+    box-shadow:none;
+  `;
+
+  const scroll = report.querySelector('.table-scroll');
+
+  if (scroll) {
+    scroll.style.cssText = 'max-height:none;overflow:visible;';
+  }
 
   host.appendChild(report);
   document.body.appendChild(host);
@@ -833,7 +1148,10 @@ async function pdf() {
     await html2pdf().set({
       margin: 8,
       filename: `گزارش_مناقصات_${date.replace(/\//g, '-')}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
+      image: {
+        type: 'jpeg',
+        quality: 0.98
+      },
       html2canvas: {
         scale: 1.5,
         backgroundColor: '#ffffff',
@@ -843,48 +1161,85 @@ async function pdf() {
         unit: 'mm',
         format: 'a3',
         orientation: 'landscape'
+      },
+      pagebreak: {
+        mode: ['css', 'legacy']
       }
     }).from(report).save();
 
     toast('گزارش PDF آماده شد.');
+
   } catch (error) {
     console.error('PDF ERROR:', error);
     toast('خطا در تولید PDF.');
+
   } finally {
     host.remove();
   }
 }
 
 // =====================================================
-// GLOBAL FUNCTIONS USED BY HTML
+// BOOT / SESSION
 // =====================================================
 
-window.toggleEditMode = toggleEditMode;
-window.openModal = openModal;
-window.closeModal = closeModal;
-window.save = save;
-window.pdf = pdf;
-window.logout = logout;
-window.load = load;
-window.apply = apply;
-window.clearFilters = clearFilters;
+async function boot() {
+  if (!initSupabase()) {
+    showLogin();
 
-// =====================================================
-// DOM READY
-// =====================================================
+    if ($('loginError')) {
+      $('loginError').textContent =
+        'تنظیمات Supabase در config.js صحیح نیست.';
+    }
 
-document.addEventListener('DOMContentLoaded', () => {
+    return;
+  }
+
+  showLogin();
+
+  // فقط یک بار به رویداد submit فرم ورود متصل می‌شویم.
   const loginForm = $('loginForm');
 
-  if (loginForm) {
+  if (loginForm && loginForm.dataset.bound !== 'yes') {
     loginForm.addEventListener('submit', handleLogin);
+    loginForm.dataset.bound = 'yes';
   }
 
-  const form = $('tenderForm');
-  if (form) {
-    // The form fields are generated dynamically when the admin opens it.
-    form.addEventListener('submit', save);
+  const { data, error } = await client.auth.getSession();
+
+  if (error) {
+    console.error('SESSION ERROR:', error);
+    toast('خطا در بررسی نشست کاربر.');
+    return;
   }
 
-  boot();
+  if (data?.session?.user) {
+    await loginUser(data.session.user);
+  }
+
+  client.auth.onAuthStateChange(async event => {
+    if (event === 'SIGNED_OUT') {
+      resetUserState();
+      showLogin();
+    }
+  });
+}
+
+// =====================================================
+// KEYBOARD
+// =====================================================
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    const modal = $('modal');
+
+    if (modal && !modal.classList.contains('hidden')) {
+      closeModal();
+    }
+  }
 });
+
+// =====================================================
+// START APPLICATION
+// =====================================================
+
+document.addEventListener('DOMContentLoaded', boot);
