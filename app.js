@@ -736,6 +736,7 @@ function acceptDashboardResponse(data) {
   S.filtered = data.rows;
 
   // Stats are calculated by SQL from the full table, not the filtered rows.
+  console.log('SQL dashboard stats:', data.stats);
   S.stats = {
     total: Number(data.stats.total) || 0,
     won: Number(data.stats.won) || 0,
