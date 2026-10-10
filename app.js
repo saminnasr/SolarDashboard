@@ -507,14 +507,207 @@ function clearFilters() {
 // =====================================================
 
 function configureStats() {
-  [
-    'statTotal', 'statTracking', 'statWon',
-    'statCapacity', 'statUpcoming'
-  ].forEach(id => {
+  const cards = [
+    ['statTotal', 'total'],
+    ['statTracking', 'tracking'],
+    ['statWon', 'won'],
+    ['statCapacity', 'capacity'],
+    ['statUpcoming', 'upcoming']
+  ];
+
+  cards.forEach(([id, type]) => {
     const element = $(id);
     const card = element?.closest('.stats > div');
-    if (card) card.classList.remove('hidden');
+    if (!card) return;
+
+    card.classList.remove('hidden');
+    card.classList.add('stat-card-clickable');
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-haspopup', 'dialog');
+    card.setAttribute('aria-label', `نمایش جزئیات ${statModalTitle(type)}`);
+    card.dataset.statModalType = type;
+
+    if (card.dataset.statModalBound === 'yes') return;
+    card.dataset.statModalBound = 'yes';
+    card.addEventListener('click', event => {
+      // Avoid opening the details window when the card contains another control.
+      if (event.target.closest('button, a, input, select, textarea')) return;
+      openStatsModal(type);
+    });
+    card.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openStatsModal(type);
+      }
+    });
   });
+
+  ensureStatsModal();
+}
+
+function statModalTitle(type) {
+  return ({
+    total: 'تمام مناقصه‌ها',
+    tracking: 'مناقصه‌های در حال پیگیری',
+    won: 'مناقصه‌های برنده',
+    capacity: 'مناقصه‌های دارای ظرفیت',
+    upcoming: 'مناقصه‌های آتی'
+  })[type] || 'مناقصه‌ها';
+}
+
+function ensureStatsModal() {
+  if ($('statsModal')) return;
+
+  const style = document.createElement('style');
+  style.id = 'statsModalStyles';
+  style.textContent = `
+    .stat-card-clickable { cursor: pointer; transition: transform .18s ease, box-shadow .18s ease; }
+    .stat-card-clickable:hover, .stat-card-clickable:focus-visible { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(26,45,62,.14); outline: 2px solid rgba(73,198,217,.65); outline-offset: 2px; }
+    #statsModal { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(8,19,29,.68); backdrop-filter: blur(5px); }
+    #statsModal.hidden { display: none !important; }
+    #statsModal .stats-dialog { width: min(1180px, 96vw); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; color: var(--text-color, #1a2d3e); background: var(--card-bg, #fff); border: 1px solid rgba(73,198,217,.38); border-radius: 16px; box-shadow: 0 24px 80px rgba(0,0,0,.28); }
+    #statsModal .stats-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 18px 22px; border-bottom: 1px solid rgba(26,45,62,.12); }
+    #statsModal .stats-dialog-title { margin: 0; font-size: 1.12rem; font-weight: 800; }
+    #statsModal .stats-dialog-subtitle { margin-top: 5px; font-size: .88rem; opacity: .72; }
+    #statsModal .stats-dialog-close { flex: 0 0 auto; width: 38px; height: 38px; border: 0; border-radius: 10px; cursor: pointer; font-size: 1.35rem; background: rgba(26,45,62,.08); color: inherit; }
+    #statsModal .stats-dialog-tools { padding: 12px 22px; border-bottom: 1px solid rgba(26,45,62,.1); }
+    #statsModal .stats-dialog-search { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid rgba(26,45,62,.2); border-radius: 9px; font: inherit; background: transparent; color: inherit; }
+    #statsModal .stats-dialog-content { overflow: auto; min-height: 120px; }
+    #statsModal .stats-dialog-table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: .9rem; }
+    #statsModal .stats-dialog-table th, #statsModal .stats-dialog-table td { padding: 11px 13px; border-bottom: 1px solid rgba(26,45,62,.09); text-align: right; vertical-align: top; white-space: normal; max-width: 300px; }
+    #statsModal .stats-dialog-table th { position: sticky; top: 0; z-index: 1; background: var(--card-bg, #fff); font-weight: 800; }
+    #statsModal .stats-dialog-table tbody tr:hover { background: rgba(73,198,217,.08); }
+    #statsModal .stats-dialog-empty { text-align: center; padding: 34px 15px; opacity: .75; }
+    @media (max-width: 640px) { #statsModal { padding: 8px; } #statsModal .stats-dialog { width: 100%; max-height: 94vh; border-radius: 12px; } #statsModal .stats-dialog-head { padding: 14px; } #statsModal .stats-dialog-tools { padding: 10px 14px; } }
+  `;
+  document.head.appendChild(style);
+
+  const modal = document.createElement('div');
+  modal.id = 'statsModal';
+  modal.className = 'hidden';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'statsModalTitle');
+  modal.innerHTML = `
+    <section class="stats-dialog">
+      <header class="stats-dialog-head">
+        <div>
+          <h2 class="stats-dialog-title" id="statsModalTitle">جزئیات مناقصه‌ها</h2>
+          <div class="stats-dialog-subtitle" id="statsModalCount">در حال دریافت اطلاعات…</div>
+        </div>
+        <button class="stats-dialog-close" type="button" aria-label="بستن" onclick="closeStatsModal()">×</button>
+      </header>
+      <div class="stats-dialog-tools">
+        <input id="statsModalSearch" class="stats-dialog-search" type="search" placeholder="جستجو در این فهرست…" autocomplete="off">
+      </div>
+      <div class="stats-dialog-content" id="statsModalContent"><div class="stats-dialog-empty">در حال دریافت اطلاعات…</div></div>
+    </section>`;
+  modal.addEventListener('click', event => {
+    if (event.target === modal) closeStatsModal();
+  });
+  document.body.appendChild(modal);
+
+  $('statsModalSearch').addEventListener('input', filterStatsModalRows);
+}
+
+let statsModalRows = [];
+let statsModalType = 'total';
+
+function matchesStatsType(tender, type) {
+  if (type === 'total') return true;
+  if (type === 'won') return norm(tender.final_result).includes('برنده');
+  if (type === 'tracking') {
+    const stage = String(tender.follow_up_stage ?? '').trim();
+    return stage !== '' && !['-', '—', '–'].includes(stage);
+  }
+  if (type === 'upcoming') {
+    const result = String(tender.final_result ?? '').trim();
+    return result === '' || ['-', '—', '–'].includes(result);
+  }
+  if (type === 'capacity') {
+    const capacity = parseNumeric(tender.capacity_mw);
+    return capacity !== null && capacity !== 0;
+  }
+  return false;
+}
+
+async function openStatsModal(type) {
+  if (!client || !S.user) return;
+  ensureStatsModal();
+  statsModalType = type;
+  const modal = $('statsModal');
+  const title = $('statsModalTitle');
+  const count = $('statsModalCount');
+  const content = $('statsModalContent');
+  const search = $('statsModalSearch');
+
+  title.textContent = statModalTitle(type);
+  count.textContent = 'در حال دریافت اطلاعات…';
+  content.innerHTML = '<div class="stats-dialog-empty">در حال دریافت اطلاعات…</div>';
+  search.value = '';
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    // The dedicated RPC filters rows before masking role-restricted columns.
+    const { data, error } = await client.rpc('get_tender_modal_rows', {
+      p_category: type
+    });
+    if (error) throw error;
+    const rows = Array.isArray(data) ? data : data?.rows;
+    if (!Array.isArray(rows)) throw new Error('تابع SQL مربوط به جزئیات کارت‌ها نصب نشده است.');
+
+    statsModalRows = rows;
+    count.textContent = `${fa(statsModalRows.length)} مورد` +
+      (type === 'capacity' ? ` — مجموع ظرفیت: ${fa((statsModalRows.reduce((sum, row) => sum + (parseNumeric(row.capacity_mw) || 0), 0)).toLocaleString('en-US'))} MW` : '');
+    renderStatsModalRows(statsModalRows);
+    search.focus();
+  } catch (error) {
+    console.error('STATS MODAL ERROR:', error);
+    count.textContent = 'دریافت اطلاعات ناموفق بود';
+    content.innerHTML = `<div class="stats-dialog-empty">${esc(error.message || 'خطا در دریافت اطلاعات.')}</div>`;
+  }
+}
+
+function renderStatsModalRows(rows) {
+  const content = $('statsModalContent');
+  if (!content) return;
+
+  if (!rows.length) {
+    content.innerHTML = '<div class="stats-dialog-empty">موردی برای نمایش وجود ندارد.</div>';
+    return;
+  }
+
+  const headers = S.columns.map(key => `<th scope="col">${esc(COLUMN_DEFS[key]?.label || key)}</th>`).join('');
+  const body = rows.map(tender => {
+    const cells = S.columns.map(key => {
+      const value = cellValue(tender, key);
+      let output = esc(value);
+      if (key === 'follow_up_stage') output = `<span class="badge stage-badge">${esc(value)}</span>`;
+      if (key === 'final_result') output = `<span class="badge ${resultClass(value)}">${esc(value)}</span>`;
+      const className = ['capacity_mw', 'tonnage', 'proposed_price', 'structure_weight'].includes(key) ? 'number-cell' : '';
+      return `<td class="${className}">${output}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+
+  content.innerHTML = `<table class="stats-dialog-table"><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function filterStatsModalRows() {
+  const query = norm($('statsModalSearch')?.value || '');
+  const filtered = !query ? statsModalRows : statsModalRows.filter(row =>
+    S.columns.some(key => norm(cellValue(row, key)).includes(query))
+  );
+  renderStatsModalRows(filtered);
+  const count = $('statsModalCount');
+  if (count) count.textContent = `${fa(filtered.length)} مورد از ${fa(statsModalRows.length)} مورد`;
+}
+
+function closeStatsModal() {
+  $('statsModal')?.classList.add('hidden');
+  document.body.style.overflow = '';
 }
 
 // =====================================================
@@ -1056,6 +1249,11 @@ async function boot() {
 
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
+    const statsModal = $('statsModal');
+    if (statsModal && !statsModal.classList.contains('hidden')) {
+      closeStatsModal();
+      return;
+    }
     const modal = $('modal');
     if (modal && !modal.classList.contains('hidden')) closeModal();
   }
