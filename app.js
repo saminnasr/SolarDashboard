@@ -610,68 +610,31 @@ async function load() {
 // =====================================================
 
 function apply() {
-  const search = norm($('searchInput')?.value);
-  const stage = norm($('stageFilter')?.value);
-  const result = norm($('resultFilter')?.value);
+  const q = norm(document.getElementById('searchInput')?.value);
+  const stage = norm(document.getElementById('stageFilter')?.value);
+  const result = norm(document.getElementById('resultFilter')?.value);
 
   S.filtered = S.tenders.filter(tender => {
 
-    // ==========================================
-    // متن قابل جستجو
-    // ==========================================
-
-    const searchable = [
-      tender.tender_name,
-      tender.employer,
-      tender.consultant,
-      tender.proposer,
-      tender.tender_number,
-      tender.city,
-      tender.province,
-      tender.follow_up_stage,
-      tender.final_result,
-      tender.notes
-    ]
-      .filter(value => value !== null && value !== undefined)
-      .join(' ');
-
-
-    // ==========================================
-    // جستجو
-    // ==========================================
-
     const matchesSearch =
-      !search ||
-      norm(searchable).includes(search);
-
-
-    // ==========================================
-    // فیلتر مرحله پیگیری
-    // ==========================================
-
-    const tenderStage =
-      norm(tender.follow_up_stage);
+      !q ||
+      [
+        tender.tender_name,
+        tender.employer,
+        tender.consultant,
+        tender.proposer,
+        tender.tender_number
+      ].some(value =>
+        norm(value).includes(q)
+      );
 
     const matchesStage =
       !stage ||
-      tenderStage.includes(stage);
-
-
-    // ==========================================
-    // فیلتر نتیجه
-    // ==========================================
-
-    const tenderResult =
-      norm(tender.final_result);
+      norm(tender.follow_up_stage).includes(stage);
 
     const matchesResult =
       !result ||
-      tenderResult.includes(result);
-
-
-    // ==========================================
-    // نتیجه نهایی
-    // ==========================================
+      norm(tender.final_result).includes(result);
 
     return (
       matchesSearch &&
@@ -680,12 +643,7 @@ function apply() {
     );
   });
 
-
-  // نمایش نتایج
   render();
-
-  // بروزرسانی کارت‌ها
-  stats();
 }
 // =====================================================
 // RENDER TABLE
