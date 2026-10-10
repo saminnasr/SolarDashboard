@@ -25,6 +25,7 @@ const $ = id => document.getElementById(id);
 
 const GROUP_A = 'group_a';
 const GROUP_B = 'group_b';
+const GROUP_C = 'group_c';
 
 // =====================================================
 // COLUMN DEFINITIONS
@@ -76,6 +77,12 @@ function visibleColumns() {
       'follow_up_stage', 'proposed_price'
     ];
   }
+  if (S.userGroup === GROUP_C) {
+  return [
+    'tender_name', 'capacity_mw', 'employer', 'consultant',
+    'tonnage', 'proposer', 'tender_date', 'tender_number'
+  ];
+}
 
   return [];
 }
@@ -315,9 +322,12 @@ async function loginUser(user) {
     S.isAdmin = profile.is_admin === true;
     S.userGroup = profile.user_group;
 
-    if (!S.isAdmin && ![GROUP_A, GROUP_B].includes(S.userGroup)) {
-      throw new Error('گروه کاربری این حساب مشخص نیست.');
-    }
+    if (
+  !S.isAdmin &&
+  ![GROUP_A, GROUP_B, GROUP_C].includes(S.userGroup)
+) {
+  throw new Error('گروه کاربری این حساب مشخص نیست.');
+}
 
     S.columns = visibleColumns();
 
@@ -522,23 +532,12 @@ function configureStats() {
 // =====================================================
 
 async function load() {
-  if (!client || !S.user) return false;
-  if (S.loading) return false;
+  if (!client || !S.user || S.loading) return false;
 
   S.loading = true;
 
   try {
-    const { data, error } = await client.rpc('get_visible_tenders');
-
-    if (error) throw error;
-
-    S.tenders = Array.isArray(data) ? data : [];
-
-    // آمار بر اساس تمام داده‌های دریافت‌شده، نه فیلتر جدول
-    stats();
-
-    // فیلتر و نمایش جدول فقط یک بار
-    apply();
+    await fetchDashboard();
 
     if ($('lastUpdated')) {
       $('lastUpdated').textContent =
@@ -547,12 +546,10 @@ async function load() {
     }
 
     return true;
-
   } catch (error) {
     console.error('LOAD ERROR:', error);
     toast('خطا در دریافت مناقصه‌ها: ' + error.message);
     return false;
-
   } finally {
     S.loading = false;
   }
@@ -562,38 +559,80 @@ async function load() {
 // SEARCH / FILTER LOGIC
 // =====================================================
 
-function apply() {
-  const q = norm($('searchInput')?.value);
-  const stage = norm($('stageFilter')?.value);
-  const result = norm($('resultFilter')?.value);
+let filterRequestId = 0;
 
-  S.filtered = S.tenders.filter(tender => {
-    const searchableValues = [
-      tender.tender_name,
-      tender.employer,
-      tender.consultant,
-      tender.proposer,
-      tender.tender_number,
-      tender.city,
-      tender.province,
-      tender.structure_type,
-      tender.follow_up_stage,
-      tender.final_result,
-      tender.notes
-    ];
+async function apply() {
+  const requestId = ++filterRequestId;
 
-    const matchesSearch =
-      !q || searchableValues.some(value => norm(value).includes(q));
+  try {
+    const { data, error } = await client.rpc('get_tender_dashboard', {
+      p_search: $('searchInput')?.value?.trim() || '',
+      p_stage: $('stageFilter')?.value?.trim() || '',
+      p_result: $('resultFilter')?.value?.trim() || ''
+    });
 
-    const matchesStage =
-      !stage || norm(tender.follow_up_stage).includes(stage);
+    if (error) throw error;
 
-    const matchesResult =
-      !result || norm(tender.final_result).includes(result);
+    // اگر درخواست جدیدتری اجرا شده، پاسخ قدیمی را نادیده بگیر.
+    if (requestId !== filterRequestId) return;
 
-    return matchesSearch && matchesStage && matchesResult;
+    if (!data || !Array.isArray(data.rows) || !data.stats) {
+      throw new Error('ساختار اطلاعات فیلتر معتبر نیست.');
+    }
+
+    S.tenders = data.rows;
+    S.filtered = data.rows;
+
+ S.stats = {
+  total: 0,
+  won: 0,
+  tracking: 0,
+  upcoming: 0,
+  capacity: 0
+};
+
+stats: {
+  total: 0,
+  won: 0,
+  tracking: 0,
+  upcoming: 0,
+  capacity: 0
+},
+    render();
+  } catch (error) {
+    if (requestId === filterRequestId) {
+      console.error('FILTER ERROR:', error);
+      toast('خطا در اعمال فیلتر: ' + error.message);
+    }
+  }
+}
+
+async function fetchDashboard() {
+  if (!client || !S.user) return;
+
+  const { data, error } = await client.rpc('get_tender_dashboard', {
+    p_search: $('searchInput')?.value?.trim() || '',
+    p_stage: $('stageFilter')?.value?.trim() || '',
+    p_result: $('resultFilter')?.value?.trim() || ''
   });
 
+  if (error) throw error;
+
+  if (!data || !Array.isArray(data.rows) || !data.stats) {
+    throw new Error('ساختار اطلاعات داشبورد معتبر نیست.');
+  }
+
+  S.tenders = data.rows;
+  S.filtered = data.rows;
+  S.stats = {
+    total: Number(data.stats.total) || 0,
+    won: Number(data.stats.won) || 0,
+    tracking: Number(data.stats.tracking) || 0,
+    upcoming: Number(data.stats.upcoming) || 0,
+    capacity: Number(data.stats.capacity) || 0
+  };
+
+  stats();
   render();
 }
 
@@ -689,49 +728,23 @@ function render() {
 // =====================================================
 
 function stats() {
-  const tenders = S.tenders;
-
-  const total = tenders.length;
-
-  const won = tenders.filter(tender =>
-    norm(tender.final_result).includes('برنده')
-  ).length;
-
-  const tracking = tenders.filter(tender => {
-    const stage = norm(tender.follow_up_stage);
-    return stage !== '' && stage !== '-' && stage !== '—';
-  }).length;
-
-  const upcoming = tenders.filter(tender => {
-    const result = norm(tender.final_result);
-    return result === '' || result === '-' || result === '—';
-  }).length;
-
-  let capacity = 0;
-  let validCapacityCount = 0;
-
-  tenders.forEach(tender => {
-    const parsed = parseNumeric(tender.capacity_mw);
-
-    if (parsed !== null) {
-      capacity += parsed;
-      validCapacityCount++;
-    }
-  });
+  const values = S.stats || {};
 
   if ($('statTotal')) {
-    $('statTotal').textContent = fa(total);
+    $('statTotal').textContent = fa(values.total || 0);
   }
 
   if ($('statTracking')) {
-    $('statTracking').textContent = fa(tracking);
+    $('statTracking').textContent = fa(values.tracking || 0);
   }
 
   if ($('statWon')) {
-    $('statWon').textContent = fa(won);
+    $('statWon').textContent = fa(values.won || 0);
   }
 
   if ($('statCapacity')) {
+    const capacity = Number(values.capacity) || 0;
+
     $('statCapacity').textContent =
       fa(capacity.toLocaleString('en-US', {
         minimumFractionDigits: 1,
@@ -740,19 +753,10 @@ function stats() {
   }
 
   if ($('statUpcoming')) {
-    $('statUpcoming').textContent = fa(upcoming);
+    $('statUpcoming').textContent = fa(values.upcoming || 0);
   }
 
-  // برای بررسی خطاهای احتمالی داده‌ها در Console مرورگر
-  console.debug('Tender statistics:', {
-    total,
-    won,
-    tracking,
-    upcoming,
-    capacity,
-    validCapacityCount,
-    totalRecords: tenders.length
-  });
+  console.debug('Dashboard statistics:', values);
 }
 
 // =====================================================
