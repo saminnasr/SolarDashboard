@@ -2042,291 +2042,277 @@ window.deleteTender =
 
 
 // =====================================================
-// PDF
+// PDF EXPORT - FIXED VERSION
 // =====================================================
 
 async function pdf() {
 
-  const tableCard =
-    document.querySelector(
-      '.table-card'
-    );
+  const originalCard = document.querySelector('.table-card');
 
-
-  const tableScroll =
-    document.querySelector(
-      '.table-scroll'
-    );
-
-
-  if (
-    !tableCard ||
-    !tableScroll
-  ) {
-
-    toast(
-      'جدول یافت نشد.'
-    );
-
+  if (!originalCard) {
+    toast('جدول یافت نشد.');
     return;
-
   }
 
+  if (typeof html2pdf !== 'function') {
+    toast('کتابخانه تولید PDF بارگذاری نشده است.');
+    return;
+  }
 
-  toast(
-    'در حال تولید PDF...'
-  );
+  if (!S.filtered || S.filtered.length === 0) {
+    toast('موردی برای چاپ وجود ندارد.');
+    return;
+  }
 
+  toast('در حال آماده‌سازی گزارش PDF...');
 
-  const now =
-    new Date();
-
-
-  const currentDate =
-    new Intl.DateTimeFormat(
-      'fa-IR',
-      {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }
-    ).format(
-      now
-    );
-
-
-  const currentTime =
-    new Intl.DateTimeFormat(
-      'fa-IR',
-      {
-        hour: '2-digit',
-        minute: '2-digit'
-      }
-    ).format(
-      now
-    );
-
-
-  const headerDiv =
-    document.createElement(
-      'div'
-    );
-
-
-  headerDiv.id =
-    'pdfHeaderTemp';
-
-
-  headerDiv.style.cssText = `
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:10px 5px;
-    margin-bottom:15px;
-    border-bottom:2px solid #000;
-    font-family:inherit;
-    direction:rtl;
-  `;
-
-
-  headerDiv.innerHTML = `
-    <div>
-
-      <h2
-        style="
-          margin:0;
-          font-size:18px;
-        "
-      >
-        گزارش مناقصات در دست اقدام
-        واحد تجدیدپذیر
-      </h2>
-
-      <span
-        style="
-          font-size:12px;
-          color:#555;
-        "
-      >
-        فهرست پیگیری مناقصات نیروگاهی
-      </span>
-
-    </div>
-
-    <div
-      style="
-        text-align:left;
-        font-size:13px;
-      "
-    >
-
-      <div>
-        <b>تاریخ گزارش:</b>
-        ${currentDate}
-      </div>
-
-      <div>
-        <b>ساعت صدور:</b>
-        ${currentTime}
-      </div>
-
-    </div>
-  `;
-
-
-  tableCard.insertBefore(
-    headerDiv,
-    tableCard.firstChild
-  );
-
-
-  const originalScrollStyle =
-    tableScroll.style.cssText;
-
-
-  const originalCardStyle =
-    tableCard.style.cssText;
-
+  let printHost = null;
 
   try {
 
-    tableScroll.style.maxHeight =
-      'none';
+    // -----------------------------------------------
+    // Create an independent copy of the report
+    // -----------------------------------------------
 
+    const report = originalCard.cloneNode(true);
 
-    tableScroll.style.overflow =
-      'visible';
+    printHost = document.createElement('div');
+    printHost.id = 'pdfPrintHost';
 
+    printHost.style.cssText = `
+      position: fixed;
+      left: -20000px;
+      top: 0;
+      width: 1800px;
+      background: #ffffff;
+      color: #263238;
+      direction: rtl;
+      font-family: Tahoma, "Vazirmatn", sans-serif;
+      z-index: -1;
+    `;
 
-    tableCard.style.maxHeight =
-      'none';
+    report.style.cssText = `
+      display: block;
+      width: 1800px;
+      max-width: none;
+      height: auto;
+      max-height: none;
+      overflow: visible;
+      background: #ffffff;
+      border: 1px solid #c9cdd0;
+      box-sizing: border-box;
+      direction: rtl;
+    `;
 
+    // -----------------------------------------------
+    // Remove editing controls from the printed report
+    // -----------------------------------------------
 
-    tableCard.style.overflow =
-      'visible';
+    report.querySelectorAll(
+      '.admin-col, .actions-cell, #adminActions'
+    ).forEach(el => el.remove());
 
+    // For non-admin users, the existing render()
+    // function omits proposer and notes cells from
+    // each data row. Remove their headers as well.
+    if (!S.isAdmin) {
 
-    const opt = {
+      report.querySelectorAll('thead th').forEach(th => {
 
-      margin: [
-        10,
-        10,
-        10,
-        10
-      ],
+        const title = (th.textContent || '').trim();
 
+        if (
+          title.includes('پیشنهاددهنده') ||
+          title.includes('ملاحظات')
+        ) {
+          th.remove();
+        }
 
-      filename:
-        `گزارش_مناقصات_${currentDate
-          .replace(
-            /\//g,
-            '-'
-          )}.pdf`,
+      });
 
+    }
+
+    // -----------------------------------------------
+    // Remove scroll and sticky-header restrictions
+    // -----------------------------------------------
+
+    const scroll = report.querySelector('.table-scroll');
+    const table = report.querySelector('table');
+
+    if (scroll) {
+      scroll.style.cssText = `
+        display: block;
+        width: 100%;
+        max-width: none;
+        height: auto;
+        max-height: none;
+        overflow: visible;
+        position: static;
+      `;
+    }
+
+    if (table) {
+      table.style.cssText = `
+        display: table;
+        width: 100%;
+        min-width: 1450px;
+        height: auto;
+        table-layout: fixed;
+        border-collapse: collapse;
+        direction: rtl;
+      `;
+
+      table.querySelectorAll('th').forEach(th => {
+        th.style.position = 'static';
+        th.style.top = 'auto';
+        th.style.zIndex = 'auto';
+        th.style.backgroundColor = '#505355';
+        th.style.color = '#ffffff';
+        th.style.border = '1px solid #707274';
+        th.style.padding = '10px 8px';
+        th.style.textAlign = 'center';
+        th.style.verticalAlign = 'middle';
+      });
+
+      table.querySelectorAll('td').forEach(td => {
+        td.style.position = 'static';
+        td.style.border = '1px solid #c9ccce';
+        td.style.padding = '10px 8px';
+        td.style.verticalAlign = 'middle';
+        td.style.wordBreak = 'break-word';
+      });
+
+      // Reapply alternating row backgrounds
+      table.querySelectorAll('tbody tr').forEach((tr, index) => {
+        tr.style.backgroundColor =
+          index % 2 === 0 ? '#e8e8e6' : '#ffffff';
+      });
+    }
+
+    // -----------------------------------------------
+    // Report title and timestamp
+    // -----------------------------------------------
+
+    const now = new Date();
+
+    const currentDate = new Intl.DateTimeFormat('fa-IR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(now);
+
+    const currentTime = new Intl.DateTimeFormat('fa-IR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(now);
+
+    const reportHeader = document.createElement('div');
+
+    reportHeader.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      padding: 14px 8px;
+      margin-bottom: 12px;
+      border-bottom: 2px solid #263238;
+      direction: rtl;
+      box-sizing: border-box;
+    `;
+
+    reportHeader.innerHTML = `
+      <div style="text-align:right;">
+        <h2 style="margin:0 0 5px;font-size:22px;">
+          مناقصات در دست اقدام واحد تجدیدپذیر
+        </h2>
+        <div style="font-size:13px;color:#555;">
+          فهرست پیگیری مناقصات نیروگاهی
+        </div>
+      </div>
+
+      <div style="text-align:left;font-size:13px;line-height:2;">
+        <div><b>تاریخ گزارش:</b> ${currentDate}</div>
+        <div><b>ساعت صدور:</b> ${currentTime}</div>
+      </div>
+    `;
+
+    const title = report.querySelector('.report-title');
+
+    if (title) {
+      title.remove();
+    }
+
+    report.insertBefore(reportHeader, report.firstChild);
+
+    // -----------------------------------------------
+    // Add the independent report to the document
+    // -----------------------------------------------
+
+    printHost.appendChild(report);
+    document.body.appendChild(printHost);
+
+    // Wait for browser layout before capturing
+    await new Promise(resolve => requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    }));
+
+    // -----------------------------------------------
+    // Generate PDF
+    // -----------------------------------------------
+
+    const safeDate = currentDate.replace(/\//g, '-');
+
+    const options = {
+      margin: [8, 8, 8, 8],
+
+      filename: `گزارش_مناقصات_${safeDate}.pdf`,
 
       image: {
-
         type: 'jpeg',
-
         quality: 0.98
-
       },
-
 
       html2canvas: {
-
         scale: 1.5,
-
         useCORS: true,
-
         logging: false,
-
-        scrollY: 0,
-
-        windowHeight:
-          tableCard.scrollHeight +
-          200
-
+        backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: 0
       },
-
 
       jsPDF: {
-
         unit: 'mm',
-
         format: 'a3',
-
         orientation: 'landscape'
-
       },
 
-
       pagebreak: {
-
-        mode: [
-
-          'avoid-all',
-
-          'css',
-
-          'legacy'
-
-        ]
-
+        mode: ['css', 'legacy']
       }
-
     };
 
-
     await html2pdf()
-      .set(
-        opt
-      )
-      .from(
-        tableCard
-      )
+      .set(options)
+      .from(report)
       .save();
 
+    toast('گزارش PDF با موفقیت تولید شد.');
+
+  } catch (error) {
+
+    console.error('PDF EXPORT ERROR:', error);
 
     toast(
-      'فایل PDF با موفقیت دانلود شد.'
+      'خطا در تولید PDF. جزئیات خطا را در Console بررسی کنید.'
     );
 
+  } finally {
 
-  }
-
-  catch (
-    error
-  ) {
-
-    console.error(
-      'PDF ERROR:',
-      error
-    );
-
-
-    toast(
-      'خطا در صدور PDF'
-    );
-
-  }
-
-
-  finally {
-
-    document
-      .getElementById(
-        'pdfHeaderTemp'
-      )
-      ?.remove();
-
-
-    tableScroll.style.cssText =
-      originalScrollStyle;
-
-
-    tableCard.style.cssText =
-      originalCardStyle;
+    // Do not alter or remove the actual on-screen table
+    if (printHost) {
+      printHost.remove();
+    }
 
   }
 
