@@ -183,7 +183,15 @@ function fa(value) {
 function norm(value) {
   return String(value ?? '')
     .trim()
-    .toLocaleLowerCase('fa-IR');
+    .toLocaleLowerCase('fa-IR')
+
+    // یکسان‌سازی حروف عربی و فارسی
+    .replace(/ي/g, 'ی')
+    .replace(/ى/g, 'ی')
+    .replace(/ك/g, 'ک')
+
+    // حذف فاصله‌های اضافی
+    .replace(/\s+/g, ' ');
 }
 
 function esc(value) {
@@ -608,21 +616,62 @@ function apply() {
 
   S.filtered = S.tenders.filter(tender => {
 
-    const searchable = S.columns
-      .map(key => cellValue(tender, key))
+    // ==========================================
+    // متن قابل جستجو
+    // ==========================================
+
+    const searchable = [
+      tender.tender_name,
+      tender.employer,
+      tender.consultant,
+      tender.proposer,
+      tender.tender_number,
+      tender.city,
+      tender.province,
+      tender.follow_up_stage,
+      tender.final_result,
+      tender.notes
+    ]
+      .filter(value => value !== null && value !== undefined)
       .join(' ');
+
+
+    // ==========================================
+    // جستجو
+    // ==========================================
 
     const matchesSearch =
       !search ||
       norm(searchable).includes(search);
 
+
+    // ==========================================
+    // فیلتر مرحله پیگیری
+    // ==========================================
+
+    const tenderStage =
+      norm(tender.follow_up_stage);
+
     const matchesStage =
       !stage ||
-      norm(tender.follow_up_stage).includes(stage);
+      tenderStage.includes(stage);
+
+
+    // ==========================================
+    // فیلتر نتیجه
+    // ==========================================
+
+    const tenderResult =
+      norm(tender.final_result);
 
     const matchesResult =
       !result ||
-      norm(tender.final_result).includes(result);
+      tenderResult.includes(result);
+
+
+    // ==========================================
+    // نتیجه نهایی
+    // ==========================================
 
     return (
       matchesSearch &&
@@ -631,7 +680,11 @@ function apply() {
     );
   });
 
+
+  // نمایش نتایج
   render();
+
+  // بروزرسانی کارت‌ها
   stats();
 }
 // =====================================================
