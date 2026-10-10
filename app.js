@@ -535,10 +535,10 @@ function clearFilters() {
 function configureStats() {
   const visibility = {
     statTotal: true,
-    statTracking: S.isAdmin || S.userGroup === GROUP_B,
-    statWon: S.isAdmin,
+    statTracking: true,
+    statWon: true,
     statCapacity: true,
-    statUpcoming: S.isAdmin
+    statUpcoming: true
   };
 
   Object.entries(visibility).forEach(([id, visible]) => {
