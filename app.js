@@ -578,7 +578,14 @@ async function load() {
 
     if (error) throw error;
 
-    S.tenders = Array.isArray(data) ? data : [];
+
+S.tenders = Array.isArray(data) ? data : [];
+
+// محاسبه آمار از کل داده‌های دریافت‌شده
+stats();
+
+// اعمال فیلترها روی ردیف‌های جدول
+apply();
 
     apply();
 
