@@ -2045,7 +2045,6 @@ window.deleteTender =
 // PDF
 // =====================================================
 
-
 async function pdf() {
 
   const tableCard =
@@ -2156,8 +2155,8 @@ async function pdf() {
 
     <div
       style="
-        text-align:right;
-        font-size:12px;
+        text-align:left;
+        font-size:13px;
       "
     >
 
@@ -2242,7 +2241,7 @@ async function pdf() {
 
         logging: false,
 
-        scrollY: 1,
+        scrollY: 0,
 
         windowHeight:
           tableCard.scrollHeight +
