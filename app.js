@@ -501,22 +501,23 @@ function buildTableHeaders() {
 function configureFilters() {
   const stage = $('stageFilter');
   const result = $('resultFilter');
+  const search = $('searchInput');
+
+  /*
+    فیلترها برای همه کاربران قابل مشاهده هستند.
+  */
 
   if (stage) {
-    stage.classList.toggle(
-      'hidden',
-      !S.isAdmin && S.userGroup !== GROUP_B
-    );
+    stage.classList.remove('hidden');
   }
 
   if (result) {
-    result.classList.toggle('hidden', !S.isAdmin);
+    result.classList.remove('hidden');
   }
 
-  const search = $('searchInput');
-
   if (search) {
-    search.placeholder = 'جستجو در ستون‌های قابل مشاهده...';
+    search.placeholder =
+      'جستجو در نام مناقصه، کارفرما، مشاور، پیشنهاددهنده یا شماره...';
   }
 }
 
@@ -606,28 +607,33 @@ function apply() {
   const result = norm($('resultFilter')?.value);
 
   S.filtered = S.tenders.filter(tender => {
+
     const searchable = S.columns
       .map(key => cellValue(tender, key))
       .join(' ');
 
     const matchesSearch =
-      !search || norm(searchable).includes(search);
+      !search ||
+      norm(searchable).includes(search);
 
     const matchesStage =
-      !stage || norm(tender.follow_up_stage).includes(stage);
+      !stage ||
+      norm(tender.follow_up_stage).includes(stage);
 
     const matchesResult =
-      !S.isAdmin ||
       !result ||
       norm(tender.final_result).includes(result);
 
-    return matchesSearch && matchesStage && matchesResult;
+    return (
+      matchesSearch &&
+      matchesStage &&
+      matchesResult
+    );
   });
 
   render();
   stats();
 }
-
 // =====================================================
 // RENDER TABLE
 // =====================================================
@@ -734,36 +740,56 @@ function render() {
 // =====================================================
 
 function stats() {
+  /*
+    آمار بر اساس مناقصه‌هایی محاسبه می‌شود
+    که همین کاربر از Supabase دریافت کرده است.
+
+    بنابراین:
+    Admin → آمار کل مناقصات قابل مشاهده برای Admin
+    Group A → آمار داده‌های قابل مشاهده Group A
+    Group B → آمار داده‌های قابل مشاهده Group B
+
+    هیچ کاربری اطلاعاتی بیشتر از سطح دسترسی خودش نمی‌بیند.
+  */
+
   const total = S.tenders.length;
 
-  const won = S.isAdmin
-    ? S.tenders.filter(tender =>
-        norm(tender.final_result).includes('برنده')
-      ).length
-    : 0;
+  const won = S.tenders.filter(tender =>
+    norm(tender.final_result).includes('برنده')
+  ).length;
 
-  const tracking = S.isAdmin || S.userGroup === GROUP_B
-    ? S.tenders.filter(tender =>
-        String(tender.follow_up_stage || '').trim() !== ''
-        && String(tender.follow_up_stage || '').trim() !== '-'
-      ).length
-    : 0;
+  const tracking = S.tenders.filter(tender => {
+    const stage = String(
+      tender.follow_up_stage || ''
+    ).trim();
 
-  const upcoming = S.isAdmin
-    ? S.tenders.filter(tender =>
-        !String(tender.final_result || '').trim()
-      ).length
-    : 0;
+    return stage !== '' && stage !== '-';
+  }).length;
+
+  const upcoming = S.tenders.filter(tender => {
+    const result = String(
+      tender.final_result || ''
+    ).trim();
+
+    return result === '';
+  }).length;
 
   let capacity = 0;
 
   S.tenders.forEach(tender => {
-    const raw = String(tender.capacity_mw || '').trim();
+    const raw = String(
+      tender.capacity_mw || ''
+    ).trim();
 
     if (/^\d+(\.\d+)?$/.test(raw)) {
       capacity += Number(raw);
     }
   });
+
+
+  // =========================
+  // UPDATE CARDS
+  // =========================
 
   if ($('statTotal')) {
     $('statTotal').textContent = fa(total);
