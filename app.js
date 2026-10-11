@@ -903,7 +903,10 @@ function stats() {
   if ($('statUpcoming')) $('statUpcoming').textContent = fa(values.upcoming || 0);
 
   if ($('statCapacity')) {
-    const capacity = Number(values.capacity) || 0;
+    const capacity = S.tenders.reduce((sum, row) => {
+      return sum + (parseNumeric(row.capacity_mw) || 0);
+    }, 0);
+
     $('statCapacity').textContent =
       fa(capacity.toLocaleString('en-US', {
         minimumFractionDigits: 1,
