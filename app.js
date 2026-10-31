@@ -80,7 +80,7 @@ function visibleColumns() {
       'tender_name', 'capacity_mw', 'employer', 'consultant',
       'tonnage', 'tender_date', 'tender_number',
       'city_province', 'structure_type', 'wind_snow',
-      'structure_weight','advance_payment_expiry_date'
+      'structure_weight'
     ];
   }
 
@@ -88,7 +88,7 @@ function visibleColumns() {
     return [
       'tender_name', 'capacity_mw', 'employer', 'proposer',
       'tender_date', 'tender_number', 'notes',
-      'follow_up_stage', 'proposed_price'
+      'follow_up_stage', 'advance_payment_expiry_date', 'proposed_price'
     ];
   }
 
