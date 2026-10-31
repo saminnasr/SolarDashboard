@@ -59,7 +59,9 @@ const COLUMN_DEFS = {
   notes: { label: 'ملاحظات' },
   follow_up_stage: { label: 'مرحله پیگیری' },
   proposed_price: { label: 'قیمت پیشنهادی' },
-  final_result: { label: 'نتیجه نهایی' }
+  final_result: { label: 'نتیجه نهایی' },
+  advance_payment_expiry_date: {label: 'پایان مهلت پیش‌پرداخت'
+},
 };
 
 function visibleColumns() {
@@ -69,7 +71,7 @@ function visibleColumns() {
       'tonnage', 'proposer', 'tender_date', 'tender_number',
       'city_province', 'structure_type', 'wind_snow',
       'structure_weight', 'notes', 'follow_up_stage',
-      'proposed_price', 'final_result'
+      'proposed_price', 'final_result','advance_payment_expiry_date'
     ];
   }
 
@@ -78,7 +80,7 @@ function visibleColumns() {
       'tender_name', 'capacity_mw', 'employer', 'consultant',
       'tonnage', 'tender_date', 'tender_number',
       'city_province', 'structure_type', 'wind_snow',
-      'structure_weight'
+      'structure_weight','advance_payment_expiry_date'
     ];
   }
 
@@ -938,6 +940,7 @@ const FORM_FIELDS = [
   ['structure_weight', 'وزن سازه'],
   ['notes', 'ملاحظات'],
   ['follow_up_stage', 'مرحله پیگیری'],
+  ['advance_payment_expiry_date', 'پایان مهلت پیش‌پرداخت'],
   ['proposed_price', 'قیمت پیشنهادی'],
   ['final_result', 'نتیجه نهایی']
 ];
