@@ -58,7 +58,7 @@ const COLUMN_DEFS = {
   structure_weight: { label: 'وزن سازه' },
   notes: { label: 'ملاحظات' },
   follow_up_stage: { label: 'مرحله پیگیری' },
-    advance_payment_expiry_date: {label: 'پایان مهلت پیش‌پرداخت'},
+  advance_payment_expiry_date: {label: 'پایان مهلت پیش‌پرداخت'},
   proposed_price: { label: 'قیمت پیشنهادی' },
   final_result: { label: 'نتیجه نهایی' },
 
