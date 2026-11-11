@@ -86,9 +86,9 @@ function visibleColumns() {
 
   if (S.userGroup === GROUP_B) {
     return [
-      'tender_name', 'capacity_mw', 'employer', 'proposer',
-      'tender_date', 'tender_number', 'notes',
-      'follow_up_stage', 'advance_payment_expiry_date', 'proposed_price'
+      'tender_name', 'capacity_mw', 'employer', 'consultant',
+      'tonnage', 'tender_date', 'notes',
+      'follow_up_stage', 'advance_payment_expiry_date', 'proposed_price', 'final_result'
     ];
   }
 
