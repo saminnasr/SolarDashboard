@@ -67,7 +67,7 @@ const COLUMN_DEFS = {
 function visibleColumns() {
   if (S.isAdmin) {
     return [
-      'tender_name', 'capacity_mw','tonnage', 'employer', 'consultant',
+      'tender_name', 'capacity_mw', 'tonnage', 'employer', 'consultant',
        'proposer', 'tender_date', 'tender_number',
       'city_province', 'structure_type', 'wind_snow',
       'structure_weight', 'notes', 'follow_up_stage',
