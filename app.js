@@ -67,8 +67,8 @@ const COLUMN_DEFS = {
 function visibleColumns() {
   if (S.isAdmin) {
     return [
-      'tender_name', 'capacity_mw', 'employer', 'consultant',
-      'tonnage', 'proposer', 'tender_date', 'tender_number',
+      'tender_name', 'capacity_mw','tonnage', 'employer', 'consultant',
+       'proposer', 'tender_date', 'tender_number',
       'city_province', 'structure_type', 'wind_snow',
       'structure_weight', 'notes', 'follow_up_stage',
       'proposed_price', 'final_result','advance_payment_expiry_date'
@@ -77,8 +77,8 @@ function visibleColumns() {
 
   if (S.userGroup === GROUP_A) {
     return [
-      'tender_name', 'capacity_mw', 'employer', 'consultant',
-      'tonnage', 'tender_date', 'tender_number',
+      'tender_name', 'capacity_mw', 'tonnage', 'employer', 'consultant',
+       'tender_date', 'tender_number',
       'city_province', 'structure_type', 'wind_snow',
       'structure_weight'
     ];
@@ -86,8 +86,8 @@ function visibleColumns() {
 
   if (S.userGroup === GROUP_B) {
     return [
-      'tender_name', 'capacity_mw', 'employer', 'consultant',
-      'tonnage', 'tender_date', 'notes',
+      'tender_name', 'capacity_mw', 'tonnage', 'employer', 'consultant',
+       'tender_date', 'notes',
       'follow_up_stage', 'advance_payment_expiry_date', 'proposed_price', 'final_result'
     ];
   }
