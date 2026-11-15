@@ -850,7 +850,7 @@ function render() {
     return;
   }
 
-  body.innerHTML = S.filtered.map(tender => {
+  body.innerHTML = [...S.filtered].sort((a, b) => (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0)).map(tender => {
     const cells = S.columns.map(key => {
       const value = cellValue(tender, key);
       let className = '';
